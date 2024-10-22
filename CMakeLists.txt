@@ -51,7 +51,7 @@ target_link_libraries(SchoolCRM PRIVATE Qt${QT_VERSION_MAJOR}::Widgets $ENV{Scho
 if(NOT DEFINED ENV{SchoolDatabaseApiHeadersPath})
     message(FATAL_ERROR "you have to set a [SchoolDatabaseApiHeadersPath] variable in project settings to specify the path to headers of the library")
 else()
-    target_include_directories(ManagementSystem PRIVATE $ENV{SchoolDatabaseApiHeadersPath})
+    target_include_directories(SchoolCRM PRIVATE $ENV{SchoolDatabaseApiHeadersPath})
 endif()
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
