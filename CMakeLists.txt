@@ -23,36 +23,22 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(SchoolCRM
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        MarkTypeSelector.h
-        MarkTypeSelector.cpp
+        Journal/MarkTypeSelector.h
+        Journal/MarkTypeSelector.cpp
 
         ComboBoxFinderView.h
         ComboBoxFinderView.cpp
 
-        ListItemConcept/ListItemConcept.h ListItemConcept/ListItemConcept.cpp
-        ListItemConcept/MenuOfNewListItem.h ListItemConcept/MenuOfNewListItem.cpp
-        ListItemConcept/MenuOfRegularListItem.h ListItemConcept/MenuOfRegularListItem.cpp
-        ListItemConcept/NewSubjectListItem.h ListItemConcept/NewSubjectListItem.cpp
-        ListItemConcept/NewRoleListItem.h ListItemConcept/NewRoleListItem.cpp
-        ListItemConcept/NewTeacherSubjectListItem.h ListItemConcept/NewTeacherSubjectListItem.cpp
-        ListItemConcept/RegularSubjectListItem.h ListItemConcept/RegularSubjectListItem.cpp
-
-        PersonCardConcept/PersonCardConcept.h PersonCardConcept/PersonCardConcept.cpp
-        PersonCardConcept/NewPersonCard.h PersonCardConcept/NewPersonCard.cpp
-        PersonCardConcept/RegularPersonCard.h PersonCardConcept/RegularPersonCard.cpp
-
-        ListItemConcept/RegularRoleListItem.h ListItemConcept/RegularRoleListItem.cpp
-        ItemWidget.h ItemWidget.cpp
-        WidgetsListView.h WidgetsListView.cpp
-        WidgetsListDelegate.h WidgetsListDelegate.cpp
 
 
 
 
 
 
-
-
+        Roles/RolesWidget.h Roles/RolesWidget.cpp Roles/RolesWidget.ui
+        Roles/CreateRoleDialog.h Roles/CreateRoleDialog.cpp Roles/CreateRoleDialog.ui
+        Persons/PersonsWidget.h Persons/PersonsWidget.cpp Persons/PersonsWidget.ui
+        Persons/PersonWidget.h Persons/PersonWidget.cpp Persons/PersonWidget.ui
 
 
     )
