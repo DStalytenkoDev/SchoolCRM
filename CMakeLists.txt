@@ -29,16 +29,14 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ComboBoxFinderView.h
         ComboBoxFinderView.cpp
 
-
-
-
-
-
-
         Roles/RolesWidget.h Roles/RolesWidget.cpp Roles/RolesWidget.ui
         Roles/CreateRoleDialog.h Roles/CreateRoleDialog.cpp Roles/CreateRoleDialog.ui
         Persons/PersonsWidget.h Persons/PersonsWidget.cpp Persons/PersonsWidget.ui
         Persons/PersonWidget.h Persons/PersonWidget.cpp Persons/PersonWidget.ui
+        Persons/CreatePersonDialog.h Persons/CreatePersonDialog.cpp
+        AuthorizationDialog.h AuthorizationDialog.cpp AuthorizationDialog.ui
+
+
 
 
     )
