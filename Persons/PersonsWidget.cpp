@@ -8,6 +8,11 @@ PersonsWidget::PersonsWidget(QWidget *parent)
     ui->setupUi(this);
 }
 
+void PersonsWidget::setConnection(dbapi::Connection *connection)
+{
+    this->connection = connection;
+}
+
 PersonsWidget::~PersonsWidget()
 {
     delete ui;
