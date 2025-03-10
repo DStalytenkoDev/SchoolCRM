@@ -23,6 +23,10 @@ MainWindow::MainWindow(QWidget *parent)
     // persons
     this->persons = new PersonsWidget(this);
     this->persons->hide();
+    this->persons->setConnection(&this->connection);
+
+    // home page (installed by designer)
+    this->lastMainWidget = this->ui->homeFrame;
 }
 
 MainWindow::~MainWindow()
@@ -38,22 +42,12 @@ void MainWindow::manageLeftBarActions(QTreeWidgetItem *item, int column)
         this->showAuthorizationDialog();
 
     if(text == "Persons")
-        this->showPersonsWidget();
+        this->swapMainWidget(this->persons);
 }
 
 void MainWindow::showAuthorizationDialog()
 {
     this->authorizationDialog->show();
-}
-
-void MainWindow::showPersonsWidget()
-{
-    auto item = this->ui->centralLayout->itemAt(0);
-
-    this->ui->centralLayout->removeItem(item);
-    this->ui->centralLayout->addWidget(this->persons);
-
-    this->persons->setConnection(&this->connection);
 }
 
 void MainWindow::completeAuthorization(int code)
@@ -88,7 +82,19 @@ void MainWindow::completeAuthorization(int code)
     this->connection.close();
 }
 
-void MainWindow::cleanUpCentralLayout()
+void MainWindow::swapMainWidget(QWidget *newWidget)
 {
+    if(newWidget == nullptr)
+        newWidget = this->ui->homeFrame;
 
+    if(this->lastMainWidget)
+        this->lastMainWidget->hide();
+
+    QLayoutItem* item = this->ui->centralLayout->replaceWidget(this->lastMainWidget, newWidget);
+
+    if(item)
+        delete item;
+
+    newWidget->setHidden(false);
+    this->lastMainWidget = newWidget;
 }

@@ -52,6 +52,13 @@
       </spacer>
      </item>
      <item>
+      <widget class="QPushButton" name="pushButton">
+       <property name="text">
+        <string>Load</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="createPerson">
        <property name="text">
         <string>Create</string>
@@ -70,7 +77,7 @@
    <item>
     <layout class="QVBoxLayout" name="bottomlayout">
      <item>
-      <widget class="QListWidget" name="personsList"/>
+      <widget class="QListView" name="personsList"/>
      </item>
     </layout>
    </item>

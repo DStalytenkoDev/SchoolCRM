@@ -9,8 +9,13 @@ CreatePersonDialog::CreatePersonDialog(QWidget *parent) : PersonWidget(parent)
     this->menuLayout()->addWidget(this->createBtn);
     this->menuLayout()->addWidget(this->cancelBtn);
 
-    connect(this->cancelBtn, &QPushButton::clicked, this, &CreatePersonDialog::canceled);
-    connect(this->createBtn, &QPushButton::clicked, this, &CreatePersonDialog::created);
+    connect(this->cancelBtn, &QPushButton::clicked, this, [this](){
+        emit this->finished(QDialog::Rejected);
+    });
 
-    this->setWindowFlag(Qt::WindowType::Dialog);
+    connect(this->createBtn, &QPushButton::clicked, this, [this](){
+        emit this->finished(QDialog::Accepted);
+    });
+
+    this->setWindowModality(Qt::WindowModal);
 }

@@ -36,8 +36,6 @@ private:
     void manageLeftBarActions(QTreeWidgetItem* item, int column);
 
     void showAuthorizationDialog();
-    void showPersonsWidget();
-
     void completeAuthorization(int code);
 
     void swapMainWidget(QWidget* newWidget);
