@@ -4,6 +4,7 @@
 
 #include "PersonWidget.h"
 #include <qpushbutton.h>
+#include <QDialog>
 
 
 /// this class does not operate the database
@@ -15,11 +16,7 @@ public:
     CreatePersonDialog(QWidget* parent = nullptr);
 
 signals:
-    /// says when dialog is submitted
-    void created();
-
-    /// says when dialog is canceled
-    void canceled();
+    void finished(QDialog::DialogCode code);
 
 private:
     QPushButton* createBtn;
