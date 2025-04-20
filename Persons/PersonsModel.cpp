@@ -57,6 +57,21 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
     return {};
 }
 
+bool PersonsModel::insertRow(int rowBefore, const dbapi::Person &person, const QModelIndex &parent)
+{
+    QString fullName = QString("%1 %2").arg(person.firstName(), person.secondName());
+
+    // if row is incorrect returns false
+    if(rowBefore < 0 or rowBefore > this->items.size())
+        return false;
+
+    this->beginInsertRows(parent, rowBefore, rowBefore);
+    this->items.insert(rowBefore, Item(fullName, person.key()));
+    this->endInsertRows();
+
+    return true;
+}
+
 PersonsModel::Item::Item(const QString &name, const dbapi::Person::Key &key)
 {
     this->name = name;

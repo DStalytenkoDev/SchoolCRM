@@ -4,7 +4,7 @@
 
 #include <SchoolDatabaseApi/Connection/Connection.h>
 #include <QWidget>
-#include "PersonWidget.h"
+#include "ShowPerson.h"
 #include "CreatePersonDialog.h"
 #include "PersonsModel.h"
 
@@ -27,19 +27,23 @@ public:
 
 private:
     Ui::PersonsWidget *ui;
-    PersonWidget* personWidget;
+    ShowPerson* personWidget;
     CreatePersonDialog* personDialog;
 
     PersonsModel* model;
+    dbapi::Person currentPerson;
 
     dbapi::Connection* connection = nullptr;
 
     void loadPersons();
+
+    void updatePerson();
     void deletePerson();
 
     void createPerson();
     void completePersonCreation();
 
+    void showPerson();
     void manageSelection(const QItemSelection& selected, const QItemSelection& deselected);
 };
 
