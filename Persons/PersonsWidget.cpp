@@ -1,5 +1,6 @@
 #include "PersonsWidget.h"
 #include "ui_PersonsWidget.h"
+#include <qdatetime.h>
 #include <qmessagebox.h>
 
 PersonsWidget::PersonsWidget(QWidget *parent)
@@ -10,11 +11,13 @@ PersonsWidget::PersonsWidget(QWidget *parent)
 
     // create person dialog
     this->personDialog = new CreatePersonDialog(this);
+    connect(this->personDialog, &CreatePersonDialog::finished, this, &PersonsWidget::completePersonCreation);
 
-    // person control for an item
-    this->personWidget = new PersonWidget(this);
+    // person widget for an item
+    this->personWidget = new ShowPerson(this);
     this->personWidget->hide();
     this->ui->bottomlayout->addWidget(this->personWidget);
+    connect(this->personWidget, &ShowPerson::updatePerson, this, &PersonsWidget::updatePerson);
 
     // model
     this->model = new PersonsModel(this);
@@ -26,6 +29,7 @@ PersonsWidget::PersonsWidget(QWidget *parent)
 void PersonsWidget::setConnection(dbapi::Connection *connection)
 {
     this->connection = connection;
+    this->currentPerson.setConnection(connection);
 }
 
 PersonsWidget::~PersonsWidget()
@@ -38,14 +42,20 @@ void PersonsWidget::loadPersons()
     auto error = this->model->loadAll();
 
     if(error.type != dbapi::ApiError::NoError)
-    {
         QMessageBox::warning(this, "Load of Persons", "Loading is failed");
-        return;
-    }
+}
+
+void PersonsWidget::updatePerson()
+{
+    this->currentPerson.setFirstName(this->personWidget->firstName());
+    this->currentPerson.setSecondName(this->personWidget->secondName());
+    this->currentPerson.setBirthday(this->personWidget->date().toJulianDay());
+    this->currentPerson.setRole()
 }
 
 void PersonsWidget::deletePerson()
 {
+
 }
 
 void PersonsWidget::createPerson()

@@ -36,6 +36,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Persons/CreatePersonDialog.h Persons/CreatePersonDialog.cpp
         AuthorizationDialog.h AuthorizationDialog.cpp AuthorizationDialog.ui
         Persons/PersonsModel.h Persons/PersonsModel.cpp
+        Persons/ShowPerson.h Persons/ShowPerson.cpp
 
 
 

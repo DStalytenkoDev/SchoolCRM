@@ -27,6 +27,8 @@ public:
 private:
     Ui::MainWindow *ui;
     AuthorizationDialog* authorizationDialog;
+
+    /// modules
     PersonsWidget* persons;
 
     QWidget* lastMainWidget = nullptr;

@@ -25,7 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->persons->hide();
     this->persons->setConnection(&this->connection);
 
-    // home page (installed by designer)
+    // home page (installed by the designer)
     this->lastMainWidget = this->ui->homeFrame;
 }
 
