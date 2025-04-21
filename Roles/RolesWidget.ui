@@ -17,7 +17,7 @@
    <item>
     <layout class="QHBoxLayout" name="menuLayout">
      <item>
-      <widget class="QLineEdit" name="searchName">
+      <widget class="QLineEdit" name="searchRole">
        <property name="sizePolicy">
         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -73,7 +73,7 @@
       <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
      </property>
      <item>
-      <widget class="QListWidget" name="rolesList"/>
+      <widget class="QListView" name="rolesList"/>
      </item>
     </layout>
    </item>

@@ -12,7 +12,10 @@ class CreateRoleDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit CreateRoleDialog(QWidget *parent = nullptr);
+    CreateRoleDialog(QWidget *parent = nullptr);
+
+    QString roleName() const;
+
     ~CreateRoleDialog();
 
 private:
