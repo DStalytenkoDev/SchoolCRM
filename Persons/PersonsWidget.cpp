@@ -50,7 +50,7 @@ void PersonsWidget::updatePerson()
     this->currentPerson.setFirstName(this->personWidget->firstName());
     this->currentPerson.setSecondName(this->personWidget->secondName());
     this->currentPerson.setBirthday(this->personWidget->date().toJulianDay());
-    this->currentPerson.setRole()
+    this->currentPerson.setRole(this->personWidget->role()->)
 }
 
 void PersonsWidget::deletePerson()

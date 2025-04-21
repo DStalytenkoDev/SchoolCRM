@@ -8,6 +8,11 @@ CreateRoleDialog::CreateRoleDialog(QWidget *parent)
     ui->setupUi(this);
 }
 
+QString CreateRoleDialog::roleName() const
+{
+    return this->ui->lineEdit->text();
+}
+
 CreateRoleDialog::~CreateRoleDialog()
 {
     delete ui;
