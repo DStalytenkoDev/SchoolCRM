@@ -41,11 +41,13 @@ private:
 
     void handleFoundRole(QModelIndex index);
     void handleClickedRole(const QModelIndex &index);
-
-    virtual void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) override;
+    void handleSelectedRoles(const QItemSelection &selected, const QItemSelection &deselected);
 
     void deleteRole();
-    void createRole();
+
+    void initRoleCreation();
+    void completeRoleCreation();
+
     void loadRoles();
 };
 

@@ -18,7 +18,9 @@ public:
     dbapi::ApiError loadAll();
 
     /// in case of any not valid index undefined behaviour
-    dbapi::Role::Key roleKeyByIndex(const QModelIndex& index);
+    dbapi::Role* role(const QModelIndex& index);
+    /// in case of any not valid index undefined behaviour
+    dbapi::Role* role(int row);
 
     virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
