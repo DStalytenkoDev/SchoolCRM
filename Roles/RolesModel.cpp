@@ -26,9 +26,14 @@ dbapi::ApiError RolesModel::loadAll()
     return {};
 }
 
-dbapi::Role::Key RolesModel::roleKeyByIndex(const QModelIndex &index)
+dbapi::Role *RolesModel::role(int row)
 {
-    return this->roles[index.row()]->key();
+    return this->roles[row];
+}
+
+dbapi::Role* RolesModel::role(const QModelIndex &index)
+{
+    return this->roles[index.row()];
 }
 
 int RolesModel::rowCount(const QModelIndex &parent) const
