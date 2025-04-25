@@ -31,11 +31,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 
         AuthorizationDialog.h AuthorizationDialog.cpp AuthorizationDialog.ui
 
-        Persons/PersonsWidget.h Persons/PersonsWidget.cpp Persons/PersonsWidget.ui
+        Persons/PersonsModule.h Persons/PersonsModule.cpp Persons/PersonsModule.ui
         Persons/PersonWidget.h Persons/PersonWidget.cpp Persons/PersonWidget.ui
-        Persons/CreatePersonDialog.h Persons/CreatePersonDialog.cpp
+        Persons/PersonCreationDialog.h Persons/PersonCreationDialog.cpp
         Persons/PersonsModel.h Persons/PersonsModel.cpp
-        Persons/ShowPerson.h Persons/ShowPerson.cpp
+        Persons/PersonEdtitionWidget.h Persons/PersonEdtitionWidget.cpp
 
         Roles/RolesModel.h Roles/RolesModel.cpp
         Roles/RolesWidget.h Roles/RolesWidget.cpp Roles/RolesWidget.ui

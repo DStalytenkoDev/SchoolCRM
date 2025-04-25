@@ -1,7 +1,7 @@
-#include "CreatePersonDialog.h"
+#include "PersonCreationDialog.h"
 
 
-CreatePersonDialog::CreatePersonDialog(QWidget *parent) : PersonWidget(parent)
+PersonCreationDialog::PersonCreationDialog(QWidget *parent) : PersonWidget(parent)
 {
     this->createBtn = new QPushButton("Create", this);
     this->cancelBtn = new QPushButton("Cancel", this);

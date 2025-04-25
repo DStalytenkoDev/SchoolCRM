@@ -59,6 +59,14 @@ void PersonWidget::setRoles(QAbstractItemModel *roles)
     this->roleView->setModel(roles);
 }
 
+void PersonWidget::clear()
+{
+    this->ui->firstName->clear();
+    this->ui->secondName->clear();
+    this->ui->date->clear();
+    this->ui->description->clear();
+}
+
 PersonWidget::~PersonWidget()
 {
     delete ui;

@@ -32,6 +32,9 @@ public:
     /// set the whole model with roles
     void setRoles(QAbstractItemModel* roles);
 
+    /// except for the roles model
+    void clear();
+
     ~PersonWidget();
 
 protected:

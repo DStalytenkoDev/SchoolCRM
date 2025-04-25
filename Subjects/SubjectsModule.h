@@ -1,45 +1,51 @@
 #ifndef SUBJECTSMODULE_H
 #define SUBJECTSMODULE_H
 
+
 #include <QWidget>
 #include <qitemselectionmodel.h>
 #include "SubjectsModel.h"
 #include "CreateSubjectDialog.h"
 #include "../ComboBoxFinderView.h"
 
+
 namespace Ui {
 class SubjectsModule;
 }
+
 
 class SubjectsModule : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit SubjectsModule(QWidget *parent = nullptr);
+    SubjectsModule(QWidget *parent = nullptr);
+
+    void setConnection(dbapi::Connection* connection);
+
     ~SubjectsModule();
 
 private:
     Ui::SubjectsModule *ui;
-    CreateSubjectDialog* roleCreatationDialog;
-    ComboBoxFinderView* roleFinder;
+    CreateSubjectDialog* subjectCreationDialog = nullptr;
+    ComboBoxFinderView* subjectFinder = nullptr;
 
-    SubjectsModel* model;
+    SubjectsModel* model = nullptr;
     QItemSelection selectedSubjects;
 
-    dbapi::Connection* connection;
+    dbapi::Connection* connection = nullptr;
 
-    void handleFoundSUbject(QModelIndex index);
-    void handleClickedRole(const QModelIndex &index);
-    void handleSelectedRoles(const QItemSelection &selected, const QItemSelection &deselected);
+    void handleFoundSubject(QModelIndex index);
+    void handleClickedSubject(const QModelIndex &index);
+    void handleSelectedSubjects(const QItemSelection &selected, const QItemSelection &deselected);
 
-    void deleteRole();
+    void deleteSubject();
 
-    void initRoleCreation();
-    void completeRoleCreation();
+    void initSubjectCreation();
+    void completeSubjectCreation();
 
-    void loadRoles();
-
+    void loadSubjects();
 };
+
 
 #endif // SUBJECTSMODULE_H
