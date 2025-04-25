@@ -22,7 +22,26 @@ RolesWidget::RolesWidget(QWidget *parent)
     this->ui->rolesList->setModel(this->model);
     this->roleFinder->setModel(this->model);
 
+    // handle selection
     connect(this->ui->rolesList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RolesWidget::handleSelectedRoles);
+
+    // handle searching
+    connect(this->roleFinder, &ComboBoxFinderView::foundItem, this, &RolesWidget::handleFoundRole);
+
+    // handle role clicking
+    connect(this->ui->rolesList, &QListView::clicked, this, &RolesWidget::handleClickedRole);
+
+    // handle deleting
+    connect(this->ui->deleteRole, &QPushButton::clicked, this, &RolesWidget::deleteRole);
+
+    // handle creation
+    connect(this->ui->addRole, &QPushButton::clicked, this, &RolesWidget::initRoleCreation);
+}
+
+void RolesWidget::setConnection(dbapi::Connection *connection)
+{
+    this->connection = connection;
+    this->model->setConnection(connection);
 }
 
 RolesWidget::~RolesWidget()
@@ -49,6 +68,8 @@ void RolesWidget::handleClickedRole(const QModelIndex &index)
 {
     this->selectedRoles.clear();
     this->selectedRoles.select(index, index);
+
+    this->ui->deleteRole->setHidden(false);
 }
 
 void RolesWidget::deleteRole()
@@ -69,6 +90,8 @@ void RolesWidget::deleteRole()
 
             if(role->error().type != dbapi::ApiError::NoError)
                 msg.append(QString("%1 %2\n").arg(role->name(), role->error().text));
+            else
+                this->ui->rolesList->setRowHidden(index.row(), true); // hide deleted roles
         }
 
         QMessageBox::warning(this, "Deletion", msg);
@@ -79,17 +102,23 @@ void RolesWidget::deleteRole()
 
 void RolesWidget::initRoleCreation()
 {
-    this->roleCreatationDialog = new CreateRoleDialog(this);
-    this->roleCreatationDialog->show();
+    if(this->roleCreationDialog)
+        delete this->roleCreationDialog;
 
-    connect(this->roleCreatationDialog, &QDialog::finished, this, &RolesWidget::completeRoleCreation);
+    this->roleCreationDialog = new CreateRoleDialog(this);
+    this->roleCreationDialog->show();
+
+    connect(this->roleCreationDialog, &QDialog::finished, this, &RolesWidget::completeRoleCreation);
 }
 
 void RolesWidget::completeRoleCreation()
 {
+    if(this->roleCreationDialog->result() == QDialog::Rejected)
+        return;
+
     dbapi::Role role(this->connection);
 
-    role.setName(this->roleCreatationDialog->roleName());
+    role.setName(this->roleCreationDialog->roleName());
 
     if(not role.store())
     {

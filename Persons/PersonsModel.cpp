@@ -12,68 +12,101 @@ void PersonsModel::setConnection(dbapi::Connection *connection)
 dbapi::ApiError PersonsModel::loadAll()
 {
     dbapi::ApiError error;
-    auto persons = dbapi::Person::loadAll(this->connection, &error);
+
+    this->cleanPersons();
+
+    this->persons = dbapi::Person::loadAll(this->connection, &error);
 
     if(error.type != dbapi::ApiError::NoError)
         return error;
 
     this->beginInsertRows(QModelIndex(), 0, persons.size() - 1);
 
-    this->items.clear();
-    this->items.reserve(persons.size());
-
-    for(auto person : persons)
-    {
-        QString fullName = QString("%1 %2").arg(person->firstName(), person->secondName());
-
-        this->items.emplaceBack(fullName, person->key());
-
-        delete person;
-    }
-
+    this->beginInsertRows({}, 0, this->persons.size() - 1);
     this->endInsertRows();
 
     return {};
 }
 
-dbapi::Person::Key PersonsModel::personKeyByIndex(const QModelIndex &index)
+dbapi::Person *PersonsModel::person(const QModelIndex &index)
 {
-    if(index.isValid())
-        return this->items[index.row()].key;
+    return this->persons[index.row()];
+}
 
-    return dbapi::Person::Key{-1};
+dbapi::Person *PersonsModel::person(int row)
+{
+    return this->persons[row];
+}
+
+void PersonsModel::personNameEdited(const QModelIndex &index)
+{
+    emit this->dataChanged(index, index, {Qt::DisplayRole});
 }
 
 int PersonsModel::rowCount(const QModelIndex &parent) const
 {
-    return this->items.count();
+    return this->persons.size();
 }
 
 QVariant PersonsModel::data(const QModelIndex &index, int role) const
 {
-    if(index.isValid() and role == Qt::DisplayRole)
-        return this->items[index.row()].name;
+    if(role != Qt::DisplayRole)
+        return {};
 
-    return {};
+    QString fullName;
+    auto person = this->persons[index.row()];
+
+    fullName.append(person->firstName());
+    fullName.append(' ');
+    fullName.append(person->secondName());
+
+    return fullName;
 }
 
 bool PersonsModel::insertRow(int rowBefore, const dbapi::Person &person, const QModelIndex &parent)
 {
-    QString fullName = QString("%1 %2").arg(person.firstName(), person.secondName());
+    auto len = this->persons.size();
 
-    // if row is incorrect returns false
-    if(rowBefore < 0 or rowBefore > this->items.size())
-        return false;
+    if(len == 0)
+    {
+        beginInsertRows({}, rowBefore, rowBefore);
+        this->persons.append(new dbapi::Person(person));
+        endInsertRows();
 
-    this->beginInsertRows(parent, rowBefore, rowBefore);
-    this->items.insert(rowBefore, Item(fullName, person.key()));
-    this->endInsertRows();
+        return true;
+    }
 
-    return true;
+    if(rowBefore >= 0 and rowBefore <= len)
+    {
+        beginInsertRows({}, rowBefore, rowBefore);
+        this->persons.insert(rowBefore, new dbapi::Person(person));
+        endInsertRows();
+
+        return true;
+    }
+
+    return false;
 }
 
-PersonsModel::Item::Item(const QString &name, const dbapi::Person::Key &key)
+PersonsModel::~PersonsModel()
 {
-    this->name = name;
-    this->key = key;
+    for(auto person : this->persons)
+        delete person;
+}
+
+void PersonsModel::cleanPersons()
+{
+    auto len = this->persons.size();
+
+    if(len == 0)
+        return;
+
+    beginRemoveRows(QModelIndex(), 0, len - 1);
+
+    for(auto person : this->persons)
+        delete person;
+
+    this->persons.clear();
+
+    endRemoveRows();
 }

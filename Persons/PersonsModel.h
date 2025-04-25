@@ -5,37 +5,38 @@
 #include <QAbstractTableModel>
 #include <SchoolDatabaseApi/Person/Person.h>
 
+
 /// provides person's name as a solid string
 class PersonsModel : public QAbstractListModel
 {
-private:
-    struct Item
-    {
-        QString name;
-        dbapi::Person::Key key;
-
-        Item(const QString& name, const dbapi::Person::Key& key);
-    };
-
 public:
     PersonsModel(QObject *parent = nullptr);
 
     void setConnection(dbapi::Connection* connection);
 
+    /// req: called setConnection() with a valid arg
     dbapi::ApiError loadAll();
 
-    /// returns -1 in case of invalid index
-    dbapi::Person::Key personKeyByIndex(const QModelIndex& index);
+    /// in case of any not valid index undefined behaviour
+    dbapi::Person* person(const QModelIndex& index);
+    /// in case of any not valid index undefined behaviour
+    dbapi::Person* person(int row);
+
+    /// must be called when dbapi::Person object is edited (first or second persons's name)
+    void personNameEdited(const QModelIndex& index);
 
     virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
-    /// does not affect the database
     bool insertRow(int rowBefore, const dbapi::Person& person, const QModelIndex &parent = QModelIndex());
+
+    ~PersonsModel();
 
 private:
     dbapi::Connection* connection = nullptr;
-    QList<Item> items;
+    QList<dbapi::Person*> persons;
+
+    void cleanPersons();
 };
 
 

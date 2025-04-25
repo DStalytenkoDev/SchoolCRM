@@ -16,6 +16,7 @@ namespace Ui {
 class RolesWidget;
 }
 
+
 class RolesWidget : public QWidget
 {
     Q_OBJECT
@@ -23,21 +24,19 @@ class RolesWidget : public QWidget
 public:
     RolesWidget(QWidget *parent = nullptr);
 
-    // manage search bar
-    // manage create dialog
-    // manage selection
+    void setConnection(dbapi::Connection* connection);
 
     ~RolesWidget();
 
 private:
     Ui::RolesWidget *ui;
-    CreateRoleDialog* roleCreatationDialog;
-    ComboBoxFinderView* roleFinder;
+    CreateRoleDialog* roleCreationDialog = nullptr;
+    ComboBoxFinderView* roleFinder = nullptr;
 
-    RolesModel* model;
+    RolesModel* model = nullptr;
     QItemSelection selectedRoles;
 
-    dbapi::Connection* connection;
+    dbapi::Connection* connection = nullptr;
 
     void handleFoundRole(QModelIndex index);
     void handleClickedRole(const QModelIndex &index);
