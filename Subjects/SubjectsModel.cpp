@@ -48,6 +48,12 @@ QVariant SubjectsModel::data(const QModelIndex &index, int role) const
     if(role != Qt::DisplayRole)
         return {};
 
+    if(not index.isValid())
+        return {};
+
+    if(index.row() >= this->subjects.count())
+        return {};
+
     return this->subjects[index.row()]->name();
 }
 

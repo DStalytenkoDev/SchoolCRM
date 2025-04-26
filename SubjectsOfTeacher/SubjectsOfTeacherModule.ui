@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>SubjectsModule</class>
- <widget class="QWidget" name="SubjectsModule">
+ <class>SubjectsOfTeacherModule</class>
+ <widget class="QWidget" name="SubjectsOfTeacherModule">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>965</width>
-    <height>716</height>
+    <width>812</width>
+    <height>657</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,23 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="menuLayout">
-     <item>
-      <widget class="QLineEdit" name="lineEdit">
-       <property name="minimumSize">
-        <size>
-         <width>150</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>200</width>
-         <height>16777215</height>
-        </size>
-       </property>
-      </widget>
-     </item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
@@ -46,16 +30,9 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="loadAllButton">
+      <widget class="QPushButton" name="addSubject">
        <property name="text">
-        <string>Load all</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="createSubject">
-       <property name="text">
-        <string>New subject</string>
+        <string>Add subject</string>
        </property>
       </widget>
      </item>

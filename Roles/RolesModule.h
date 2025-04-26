@@ -1,5 +1,5 @@
-#ifndef ROLESWIDGET_H
-#define ROLESWIDGET_H
+#ifndef ROLESMODULE_H
+#define ROLESMODULE_H
 
 
 #include <QWidget>
@@ -8,29 +8,29 @@
 #include <SchoolDatabaseApi/Role/Role.h>
 
 #include "RolesModel.h"
-#include "CreateRoleDialog.h"
+#include "RoleCreationDialog.h"
 #include "../ComboBoxFinderView.h"
 
 
 namespace Ui {
-class RolesWidget;
+class RolesModule;
 }
 
 
-class RolesWidget : public QWidget
+class RolesModule : public QWidget
 {
     Q_OBJECT
 
 public:
-    RolesWidget(QWidget *parent = nullptr);
+    RolesModule(QWidget *parent = nullptr);
 
     void setConnection(dbapi::Connection* connection);
 
-    ~RolesWidget();
+    ~RolesModule();
 
 private:
-    Ui::RolesWidget *ui;
-    CreateRoleDialog* roleCreationDialog = nullptr;
+    Ui::RolesModule *ui;
+    RoleCreationDialog* roleCreationDialog = nullptr;
     ComboBoxFinderView* roleFinder = nullptr;
 
     RolesModel* model = nullptr;
@@ -48,7 +48,10 @@ private:
     void completeRoleCreation();
 
     void loadRoles();
+
+    void setupRoleFinder();
+    void setupRolesList();
 };
 
 
-#endif // ROLESWIDGET_H
+#endif // ROLESMODULE_H

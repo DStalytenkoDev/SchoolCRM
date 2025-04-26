@@ -21,12 +21,22 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->ui->treeWidget, &QTreeWidget::itemClicked, this, &MainWindow::manageLeftBarActions);
 
     // persons
-    this->persons = new PersonsWidget(this);
+    this->persons = new PersonsModule(this);
     this->persons->hide();
     this->persons->setConnection(&this->connection);
 
+    // roles
+    this->roles = new RolesModule(this);
+    this->roles->hide();
+    this->roles->setConnection(&this->connection);
+
+    // subjects
+    this->subjects = new SubjectsModule(this);
+    this->subjects->hide();
+    this->subjects->setConnection(&this->connection);
+
     // home page (installed by the designer)
-    this->lastMainWidget = this->ui->homeFrame;
+    this->lastModule = this->ui->homeFrame;
 }
 
 MainWindow::~MainWindow()
@@ -39,13 +49,19 @@ void MainWindow::manageLeftBarActions(QTreeWidgetItem *item, int column)
     auto text = item->text(0);
 
     if(text == "Authorization")
-        this->showAuthorizationDialog();
+        this->initAuthorization();
 
     if(text == "Persons")
         this->swapMainWidget(this->persons);
+
+    if(text == "Roles")
+        this->swapMainWidget(this->roles);
+
+    if(text == "Subjects")
+        this->swapMainWidget(this->subjects);
 }
 
-void MainWindow::showAuthorizationDialog()
+void MainWindow::initAuthorization()
 {
     this->authorizationDialog->show();
 }
@@ -87,14 +103,14 @@ void MainWindow::swapMainWidget(QWidget *newWidget)
     if(newWidget == nullptr)
         newWidget = this->ui->homeFrame;
 
-    if(this->lastMainWidget)
-        this->lastMainWidget->hide();
+    if(this->lastModule)
+        this->lastModule->hide();
 
-    QLayoutItem* item = this->ui->centralLayout->replaceWidget(this->lastMainWidget, newWidget);
+    QLayoutItem* item = this->ui->centralLayout->replaceWidget(this->lastModule, newWidget);
 
     if(item)
         delete item;
 
     newWidget->setHidden(false);
-    this->lastMainWidget = newWidget;
+    this->lastModule = newWidget;
 }

@@ -53,6 +53,12 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
     if(role != Qt::DisplayRole)
         return {};
 
+    if(not index.isValid())
+        return {};
+
+    if(index.row() >= this->persons.count())
+        return {};
+
     QString fullName;
     auto person = this->persons[index.row()];
 

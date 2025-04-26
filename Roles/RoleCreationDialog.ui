@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>CreateRoleDialog</class>
- <widget class="QDialog" name="CreateRoleDialog">
+ <class>RoleCreationDialog</class>
+ <widget class="QDialog" name="RoleCreationDialog">
   <property name="windowModality">
    <enum>Qt::WindowModality::WindowModal</enum>
   </property>
@@ -54,7 +54,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>CreateRoleDialog</receiver>
+   <receiver>RoleCreationDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -70,7 +70,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>CreateRoleDialog</receiver>
+   <receiver>RoleCreationDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

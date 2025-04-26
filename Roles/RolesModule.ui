@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>RolesWidget</class>
- <widget class="QWidget" name="RolesWidget">
+ <class>RolesModule</class>
+ <widget class="QWidget" name="RolesModule">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -50,6 +50,13 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="loadAllButton">
+       <property name="text">
+        <string>Load All</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="addRole">

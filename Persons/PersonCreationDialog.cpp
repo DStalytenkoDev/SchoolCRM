@@ -18,4 +18,5 @@ PersonCreationDialog::PersonCreationDialog(QWidget *parent) : PersonWidget(paren
     });
 
     this->setWindowModality(Qt::WindowModal);
+    this->setWindowFlags(Qt::Window);
 }
