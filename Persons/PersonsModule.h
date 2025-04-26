@@ -58,6 +58,10 @@ private:
 
     void loadPersons();
     bool loadRolesIfNeed();
+
+    void setupPersonFinder();
+    void setupPersonsList();
+    void setupPersonEditionWidget();
 };
 
 

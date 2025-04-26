@@ -24,7 +24,9 @@ ComboBoxFinderView::ComboBoxFinderView(QWidget *parent) : QComboBox(parent)
 void ComboBoxFinderView::setModel(QAbstractItemModel *model)
 {
     QComboBox::setModel(model);
+
     this->proxyModel->setSourceModel(model);
+    this->completer()->setModel(this->proxyModel);
 }
 
 void ComboBoxFinderView::filter(const QString& text)

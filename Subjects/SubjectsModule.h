@@ -45,6 +45,9 @@ private:
     void completeSubjectCreation();
 
     void loadSubjects();
+
+    void setupSubjectFinder();
+    void setupSubjectList();
 };
 
 

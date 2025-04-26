@@ -3,10 +3,11 @@
 
 
 #include <QMainWindow>
-#include <qtreewidget.h>
+#include <QTreeWidget>
 #include "AuthorizationDialog.h"
-#include "SchoolDatabaseApi/Connection/Connection.h"
-#include "Persons/PersonsWidget.h"
+#include "Roles/RolesModule.h"
+#include "Subjects/SubjectsModule.h"
+#include "Persons/PersonsModule.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -29,15 +30,17 @@ private:
     AuthorizationDialog* authorizationDialog;
 
     /// modules
-    PersonsWidget* persons;
+    RolesModule* roles;
+    SubjectsModule* subjects;
+    PersonsModule* persons;
 
-    QWidget* lastMainWidget = nullptr;
+    QWidget* lastModule = nullptr;
 
     dbapi::Connection connection;
 
     void manageLeftBarActions(QTreeWidgetItem* item, int column);
 
-    void showAuthorizationDialog();
+    void initAuthorization();
     void completeAuthorization(int code);
 
     void swapMainWidget(QWidget* newWidget);

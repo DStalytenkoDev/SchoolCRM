@@ -46,6 +46,12 @@ QVariant RolesModel::data(const QModelIndex &index, int role) const
     if(role != Qt::DisplayRole)
         return {};
 
+    if(not index.isValid())
+        return {};
+
+    if(index.row() >= this->roles.count())
+        return {};
+
     return this->roles[index.row()]->name();
 }
 
