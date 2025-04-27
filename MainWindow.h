@@ -8,6 +8,7 @@
 #include "Roles/RolesModule.h"
 #include "Subjects/SubjectsModule.h"
 #include "Persons/PersonsModule.h"
+#include "SubjectsOfTeacher/SubjectsOfTeacherModule.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -33,6 +34,7 @@ private:
     RolesModule* roles;
     SubjectsModule* subjects;
     PersonsModule* persons;
+    SubjectsOfTeacherModule* subjectsOfTeacherModule;
 
     QWidget* lastModule = nullptr;
 

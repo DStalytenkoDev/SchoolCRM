@@ -21,8 +21,6 @@ dbapi::ApiError PersonsModel::loadAll()
         return error;
 
     this->beginInsertRows(QModelIndex(), 0, persons.size() - 1);
-
-    this->beginInsertRows({}, 0, this->persons.size() - 1);
     this->endInsertRows();
 
     return {};

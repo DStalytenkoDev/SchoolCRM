@@ -35,6 +35,10 @@ MainWindow::MainWindow(QWidget *parent)
     this->subjects->hide();
     this->subjects->setConnection(&this->connection);
 
+    this->subjectsOfTeacherModule = new SubjectsOfTeacherModule(this);
+    this->subjectsOfTeacherModule->hide();
+    this->subjectsOfTeacherModule->setConnection(&this->connection);
+
     // home page (installed by the designer)
     this->lastModule = this->ui->homeFrame;
 }
@@ -59,6 +63,12 @@ void MainWindow::manageLeftBarActions(QTreeWidgetItem *item, int column)
 
     if(text == "Subjects")
         this->swapMainWidget(this->subjects);
+
+    if(text == "Subjects of teacher")
+    {
+        this->swapMainWidget(this->subjectsOfTeacherModule);
+        this->subjectsOfTeacherModule->prepare();
+    }
 }
 
 void MainWindow::initAuthorization()
