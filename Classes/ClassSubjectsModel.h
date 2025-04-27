@@ -1,10 +1,12 @@
-#ifndef SUBJECTSOFTEACHERMODEL_H
-#define SUBJECTSOFTEACHERMODEL_H
+#ifndef CLASSSUBJECTSMODEL_H
+#define CLASSSUBJECTSMODEL_H
 
-#include <SchoolDatabaseApi/TeacherSubjectsList/TeacherSubjectsList.h>
+
 #include <QAbstractListModel>
+#include <SchoolDatabaseApi/ClassSubjectsList/ClassSubjectsList.h>
 
-class SubjectsOfTeacherModel : public QAbstractListModel
+
+class ClassSubjectsModel : public QAbstractListModel
 {
 private:
     struct Item
@@ -14,12 +16,12 @@ private:
     };
 
 public:
-    SubjectsOfTeacherModel(QObject *parent = nullptr);
+    ClassSubjectsModel(QObject *parent = nullptr);
 
     void setConnection(dbapi::Connection* connection);
 
     /// req: called setConnection() with a valid arg
-    dbapi::ApiError loadSubjects(const dbapi::Person::Key& key);
+    dbapi::ApiError loadSubjects(const dbapi::Class::Key& key);
 
     /// in case of any not valid index undefined behaviour
     dbapi::Subject::Key subject(const QModelIndex& index);
@@ -37,4 +39,4 @@ private:
     QList<Item> items;
 };
 
-#endif // SUBJECTSOFTEACHERMODEL_H
+#endif // CLASSSUBJECTSMODEL_H

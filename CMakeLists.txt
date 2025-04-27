@@ -47,6 +47,13 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 
         SubjectsOfTeacher/SubjectsOfTeacherModule.h SubjectsOfTeacher/SubjectsOfTeacherModule.cpp SubjectsOfTeacher/SubjectsOfTeacherModule.ui
         SubjectsOfTeacher/SubjectsOfTeacherModel.h SubjectsOfTeacher/SubjectsOfTeacherModel.cpp
+
+        Classes/ClassSubjectsModel.h Classes/ClassSubjectsModel.cpp
+        Classes/ClassStudentsModel.h Classes/ClassStudentsModel.cpp
+        Classes/ClassesModel.h Classes/ClassesModel.cpp
+        Classes/ClassesModule.h Classes/ClassesModule.cpp Classes/ClassesModule.ui
+
+
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET SchoolCRM APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

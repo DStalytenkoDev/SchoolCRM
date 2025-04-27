@@ -80,6 +80,8 @@ void SubjectsModule::deleteSubject()
         this->ui->subjectsList->setRowHidden(index.row(), true); // hide deleted subject
     }
 
+    this->connection->close();
+
     if(errorFlag)
     {
         QString msg("Deletion of these subjects is failed:\n");
