@@ -37,7 +37,7 @@ private:
     QAction* classCreationAction;
     QAction* classDeletionAction;
 
-    ClassCreationDialog* classCreationDialog;
+    ClassCreationDialog* classCreationDialog = nullptr;
 
     ComboBoxFinderView* classFinder;
     ComboBoxFinderView* teacherFinder;
@@ -60,11 +60,15 @@ private:
     void handleSelectedItems(const QItemSelection &selected, const QItemSelection &deselected);
     void handleTeacherChanging(const QModelIndex &index);
 
-    void deleteItems();
-    bool deleteSubjects(const dbapi::Class::Key& key);
+    void handleItemsDeletion();
+
+    /// does not manages the connection
+    bool deleteSubjects();
+
+    /// does not manages the connection
     bool deleteStudents();
 
-    void deleteClass();
+    void handleClassDeletion();
 
     void initItemAddition();
     void abortItemAddition();
@@ -74,20 +78,34 @@ private:
     void completeClassCreation();
     void abortClassCreation();
 
+    /// if not selected returns nullptr
+    dbapi::Class* currentClass();
+
+    /// if not selected returns nullptr
+    dbapi::Person* currentTeacher();
+
     void setupFinders();
     void setupLists();
     void setupToolBar();
 
     /// trys to open the connection, otherwise shows error
     bool tryConnect();
+    /// shows generall error
     void showInternalError();
+    /// closes connection and shows generall error
+    void abortConnection();
 
-    /// does not manage the connection, manages erorr message
+    /// does not manage the connection
     bool loadHomeroomTeacher();
-    /// does not manage the connection, manages erorr message
+    /// does not manage the connection
     bool loadStudentsList();
-    /// does not manage the connection, manages erorr message
+    /// does not manage the connection
     bool loadSubjectsList();
+
+    void strictGuiForUnselectedClass();
+    void strictGuiForNoItemAddition();
+    void strictGuiForNoItemDelition();
 };
+
 
 #endif // CLASSESMODULE_H

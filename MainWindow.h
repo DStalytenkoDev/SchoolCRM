@@ -9,6 +9,7 @@
 #include "Subjects/SubjectsModule.h"
 #include "Persons/PersonsModule.h"
 #include "SubjectsOfTeacher/SubjectsOfTeacherModule.h"
+#include "Classes/ClassesModule.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -35,6 +36,7 @@ private:
     SubjectsModule* subjects;
     PersonsModule* persons;
     SubjectsOfTeacherModule* subjectsOfTeacherModule;
+    ClassesModule* classes;
 
     QWidget* lastModule = nullptr;
 
