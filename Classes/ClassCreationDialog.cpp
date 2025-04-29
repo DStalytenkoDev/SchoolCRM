@@ -13,7 +13,7 @@ ClassCreationDialog::ClassCreationDialog(QWidget *parent)
     this->ui->teacherLayout->addWidget(this->teacherFinder);
 
     this->ui->teacherLayout->setStretch(0, 1);
-    this->ui->teacherLayout->setStretch(0, 2);
+    this->ui->teacherLayout->setStretch(1, 2);
 }
 
 QString ClassCreationDialog::name() const

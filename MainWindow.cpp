@@ -39,6 +39,11 @@ MainWindow::MainWindow(QWidget *parent)
     this->subjectsOfTeacherModule->hide();
     this->subjectsOfTeacherModule->setConnection(&this->connection);
 
+    // classes
+    this->classes = new ClassesModule(this);
+    this->classes->hide();
+    this->classes->setConnection(&this->connection);
+
     // home page (installed by the designer)
     this->lastModule = this->ui->homeFrame;
 }
@@ -68,6 +73,12 @@ void MainWindow::manageLeftBarActions(QTreeWidgetItem *item, int column)
     {
         this->swapMainWidget(this->subjectsOfTeacherModule);
         this->subjectsOfTeacherModule->prepare();
+    }
+
+    if(text == "Classes")
+    {
+        this->swapMainWidget(this->classes);
+        this->classes->prepare();
     }
 }
 
