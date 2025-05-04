@@ -20,6 +20,7 @@ ClassesModule::ClassesModule(QWidget *parent)
     this->setupFinders();
     this->setupLists();
     this->setupToolBar();
+    this->setupStateMachine();
 }
 
 void ClassesModule::setConnection(dbapi::Connection *connection)
@@ -35,16 +36,10 @@ void ClassesModule::setConnection(dbapi::Connection *connection)
 
 void ClassesModule::prepare()
 {
-    if(not this->tryConnect())
-        return;
-
-    auto error = this->classesModel->loadAll();
-    this->connection->close();
-
-    this->strictGuiForUnselectedClass();
-
-    if(error.type != dbapi::ApiError::NoError)
-        this->showInternalError();
+    // reset state machine
+    this->stateMachine->stop();
+    this->stateMachine->setInitialState(this->classesNotLoaded);
+    this->stateMachine->start();
 }
 
 ClassesModule::~ClassesModule()
@@ -52,76 +47,81 @@ ClassesModule::~ClassesModule()
     delete ui;
 }
 
-void ClassesModule::handleFoundClass(QModelIndex index)
+void ClassesModule::enterToClassesNotLoaded()
 {
-    // reset gui
-    this->strictGuiForUnselectedClass();
-
-    int _index = index.row();
-    int __index = this->classesModel->rowCount();
-    int ___index = this->classFinder->currentIndex();
-
-    if(not this->currentClass())
-        return;
+    this->resetUi();
 
     if(not this->tryConnect())
         return;
 
-    if(not this->loadHomeroomTeacher())
+    auto error = this->classesModel->loadAll();
+    this->connection->close();
+
+    if(error.type != dbapi::ApiError::NoError)
+        return this->showInternalError();
+
+    emit this->goInClassesLoaded();
+}
+
+void ClassesModule::enterToClassesLoaded()
+{
+    this->resetUi();
+    this->classFinder->setDisabled(false);
+}
+
+void ClassesModule::enterToClassSelected()
+{
+    this->resetUi();
+
+    if(not this->tryConnect())
+    {
+        emit this->goInClassesLoaded();
         return this->abortConnection();
+    }
+
+    if(not this->loadHomeroomTeacher())
+    {
+        emit this->goInClassesLoaded();
+        return this->abortConnection();
+    }
 
     if(not this->loadStudentsList())
+    {
+        emit this->goInClassesLoaded();
         return this->abortConnection();
+    }
 
     if(not this->loadSubjectsList())
+    {
+        emit this->goInClassesLoaded();
         return this->abortConnection();
+    }
 
-    // set gui for selected class
+    // set gui
+    this->classFinder->setDisabled(false);
     this->teacherFinder->setHidden(false);
+
     this->classDeletionAction->setDisabled(false);
+    this->ui->addItem->setHidden(false);
+    this->ui->tabWidget->setHidden(false);
+
+    this->ui->verticalSpacer->changeSize(0, 10);
 
     this->connection->close();
 }
 
-void ClassesModule::handleClickedItem(const QModelIndex &index)
+void ClassesModule::enterToInItemDelition()
 {
-    this->strictGuiForNoItemAddition();
-    this->strictGuiForNoItemDelition();
-
-    if(not this->currentClass())
-        return;
-
-    if(not index.isValid())
-        return;
-
-    this->selectedItems.clear();
-    this->selectedItems.select(index, index);
-
     this->ui->deleteItem->setHidden(false);
+    this->ui->addItem->hide();
 }
 
-void ClassesModule::handleSelectedItems(const QItemSelection &selected, const QItemSelection &deselected)
+void ClassesModule::enterToInTeacherChanging()
 {
-    this->selectedItems = selected;
-    this->strictGuiForNoItemAddition();
-    this->strictGuiForNoItemDelition();
-
-    if(selected.empty())
-        this->ui->addItem->setHidden(false);
-    else
-        this->ui->deleteItem->setHidden(false);
-}
-
-void ClassesModule::handleTeacherChanging(const QModelIndex &index)
-{
-    if(not this->currentClass())
-        return;
-
-    if(not index.isValid())
-        return;
-
     if(not this->tryConnect())
         return;
+
+    emit this->goInClassSelected();
 
     dbapi::ApiError error;
     auto teachers = dbapi::Classmate::loadAll(this->connection, &error);
@@ -145,28 +145,105 @@ void ClassesModule::handleTeacherChanging(const QModelIndex &index)
     if(not foundOldTeacher)
         return this->abortConnection();
 
+    this->connection->transaction();
+
     // delete old teacher
     bool teacherDeleted = foundOldTeacher->remove();
     delete foundOldTeacher;
 
-    if(not teacherDeleted)
-        return this->abortConnection();
-
     // create new teacher
     dbapi::Classmate teacher({newTeacher->key()}, this->connection);
+    bool teacherStored = teacher.store();
 
-    if(not teacher.store())
-        return this->abortConnection();
+    if(teacherDeleted and teacherStored)
+    {
+        this->connection->commit();
+        this->connection->close();
+        QMessageBox::information(this, "Change", "Teacher was changed");
+        return;
+    }
+
+    this->connection->rollback();
+    this->loadHomeroomTeacher();
+    this->abortConnection();
+}
+
+void ClassesModule::enterToInClassDelition()
+{
+    if(not this->tryConnect())
+        return;
+
+    this->connection->transaction();
+
+    auto grade = this->currentClass();
+
+    // delete class subjects
+    dbapi::ClassSubjectsList subjectsList({grade->key()}, this->connection);
+    subjectsList.remove();
+
+    // delete class students
+    dbapi::ApiError studentsDeletionError;
+    auto students = dbapi::Student::loadAll(this->connection, &studentsDeletionError);
+
+    for(auto student : students)
+    {
+        if(student->grade() == grade->key())
+            student->remove();
+
+        delete student;
+    }
+
+    // delete class teacher
+    dbapi::ApiError teacherDelitionError;
+    auto teachers = dbapi::Classmate::loadAll(this->connection, &teacherDelitionError);
+
+    for(auto teacher : teachers)
+    {
+        if(teacher->grade() == grade->key())
+            teacher->remove();
+
+        delete teacher;
+    }
+
+    // delete class
+    bool classDeleted = grade->remove();
+
+    if(not classDeleted)
+    {
+        this->connection->rollback();
+        this->showInternalError();
+        emit this->goInClassSelected();
+    }
+    else
+    {
+        this->connection->commit();
+        QMessageBox::information(this, "Delition", "Class was deleted");
+        emit this->goInClassesNotLoaded();
+    }
 
     this->connection->close();
-    QMessageBox::information(this, "Change", "Teacher was changed");
+}
+
+void ClassesModule::handleClickedItem(const QModelIndex &index)
+{
+    this->selectedItems.clear();
+    this->selectedItems.select(index, index);
+
+    emit this->goInInItemDelition();
+}
+
+void ClassesModule::handleSelectedItems(const QItemSelection &selected, const QItemSelection &deselected)
+{
+    this->selectedItems = selected;
+
+    if(selected.empty())
+        emit this->goInClassSelected();
+    else
+        emit this->goInInItemDelition();
 }
 
 void ClassesModule::handleItemsDeletion()
 {
-    if(not this->currentClass())
-        return;
-
     if(not this->tryConnect())
         return;
 
@@ -179,11 +256,10 @@ void ClassesModule::handleItemsDeletion()
         deleted = this->deleteSubjects();
 
     this->connection->close();
+    emit this->goInClassSelected();
 
     if(not deleted)
         return this->showInternalError();
-
-    this->strictGuiForNoItemDelition();
 
     this->selectedItems.clear();
 
@@ -237,63 +313,8 @@ bool ClassesModule::deleteStudents()
     return true;
 }
 
-void ClassesModule::handleClassDeletion()
-{
-    if(not this->currentClass())
-        return;
-
-    if(not this->tryConnect())
-        return;
-
-    auto grade = this->currentClass();
-
-    // delete class subjects
-    dbapi::ClassSubjectsList subjectsList({grade->key()}, this->connection);
-    subjectsList.remove();
-
-    // delete class students
-    dbapi::ApiError studentsDeletionError;
-    auto students = dbapi::Student::loadAll(this->connection, &studentsDeletionError);
-
-    for(auto student : students)
-    {
-        if(student->grade() == grade->key())
-            student->remove();
-
-        delete student;
-    }
-
-    // delete class teacher
-    dbapi::ApiError teacherDelitionError;
-    auto teachers = dbapi::Classmate::loadAll(this->connection, &teacherDelitionError);
-
-    for(auto teacher : teachers)
-    {
-        if(teacher->grade() == grade->key())
-            teacher->remove();
-
-        delete teacher;
-    }
-
-    // delete class
-    if(not grade->remove())
-        return this->abortConnection();
-
-    this->connection->close();
-
-    QMessageBox::information(this, "Delition", "Class was deleted");
-
-    this->strictGuiForUnselectedClass();
-}
-
 void ClassesModule::initItemAddition()
 {
-    this->strictGuiForNoItemAddition();
-    this->strictGuiForNoItemDelition();
-
-    if(not this->currentClass())
-        return;
-
     if(not this->tryConnect())
         return;
 
@@ -314,21 +335,21 @@ void ClassesModule::initItemAddition()
     this->connection->close();
 
     if(error.type != dbapi::ApiError::NoError)
+    {
+        emit this->goInClassSelected();
         return this->showInternalError();
+    }
 
-    this->ui->itemAdditionMenu->setHidden(false); // show addition menu
-}
-
-void ClassesModule::abortItemAddition()
-{
-    this->ui->itemAdditionMenu->hide();
-    this->ui->addItem->setHidden(false);
+    this->ui->itemAdditionMenu->setHidden(false);
+    this->ui->addItem->hide();
 }
 
 void ClassesModule::completeItemAddition()
 {
     if(not this->tryConnect())
         return;
+
+    this->connection->transaction();
 
     bool added = false;
 
@@ -340,11 +361,7 @@ void ClassesModule::completeItemAddition()
         auto person = this->personsModel->person(this->itemForAdditionFinder->currentIndex());
         dbapi::Student student({person->key()}, this->connection);
 
-        if(student.store())
-        {
-            added = true;
-            this->classStudentsModel->insertRow(*person);
-        }
+        added = student.store();
     }
     else
     {
@@ -356,17 +373,19 @@ void ClassesModule::completeItemAddition()
         dbapi::ClassSubjectsList list({grade->key()}, this->connection);
         list.appendSubject(subject->key());
 
-        if(list.update())
-        {
-            added = true;
-            this->classSubjectsModel->insertRow(*subject);
-        }
+        added = list.update();
     }
 
-    if(not added)
-        return this->showInternalError();
+    emit this->goInClassSelected();
 
-    this->abortItemAddition();
+    if(not added)
+    {
+        this->connection->rollback();
+        return this->abortConnection();
+    }
+
+    this->connection->commit();
+    this->connection->close();
 
     QMessageBox::information(this, "Addition", "Item was added");
 }
@@ -380,7 +399,14 @@ void ClassesModule::initClassCreation()
     this->connection->close();
 
     if(error.type != dbapi::ApiError::NoError)
+    {
+        if(this->currentClass())
+            emit this->goInClassSelected();
+        else
+            emit this->goInClassesNotLoaded();
+
         return this->showInternalError();
+    }
 
     if(this->classCreationDialog)
         delete this->classCreationDialog;
@@ -396,20 +422,16 @@ void ClassesModule::initClassCreation()
 void ClassesModule::completeClassCreation()
 {
     if(this->classCreationDialog->result() == QDialog::Rejected)
-        return;
+        return this->abortClassCreation();
 
     if(not this->tryConnect())
-        return;
+        return this->abortClassCreation();
+
+    this->connection->transaction();
 
     dbapi::Class grade(this->connection);
     grade.setName(this->classCreationDialog->name());
-
-    if(not grade.store())
-    {
-        this->abortClassCreation();
-        this->abortConnection();
-        return;
-    }
+    bool gradeStored = grade.store();
 
     dbapi::Classmate teacher(this->connection);
 
@@ -417,34 +439,38 @@ void ClassesModule::completeClassCreation()
 
     teacher.setKey({person->key()});
     teacher.setGrade(grade.key());
+    bool teacherStored = teacher.store();
 
-    if(not teacher.store())
+    if(teacherStored and gradeStored)
     {
+        this->connection->commit();
+
+        // add new class to widgets
+        this->classesModel->insertRow(grade);
+        this->classFinder->setCurrentIndex(this->classesModel->rowCount() - 1);
+
+        // add teacher to widgets
+        this->teacherFinder->setCurrentIndex(this->classCreationDialog->currentIndex().row());
+
+        emit this->goInClassSelected();
+        QMessageBox::information(this, "Creation", "The class was created");
+    }
+    else
+    {
+        this->connection->rollback();
+        this->showInternalError();
         this->abortClassCreation();
-
-        grade.remove();
-
-        this->abortConnection();
-        return;
     }
 
-    // add new class to widgets
-    this->classesModel->insertRow(grade);
-    this->classFinder->setCurrentIndex(this->classesModel->rowCount());
-
-    // add teacher to widgets
-    this->teacherFinder->setCurrentIndex(this->classCreationDialog->currentIndex().row());
-
     this->connection->close();
-
-    this->classDeletionAction->setDisabled(false);
-
-    QMessageBox::information(this, "Creation", "The class was created");
 }
 
 void ClassesModule::abortClassCreation()
 {
-
+    if(this->currentClass())
+        emit this->goInClassSelected();
+    else
+        emit this->goInClassesNotLoaded();
 }
 
 dbapi::Class *ClassesModule::currentClass()
@@ -473,14 +499,9 @@ void ClassesModule::setupFinders()
     this->classFinder->setModel(this->classesModel);
     this->ui->menuLayout->insertWidget(0, this->classFinder);
 
-    connect(this->classFinder, &ComboBoxFinderView::foundItem, this, &ClassesModule::handleFoundClass);
-
     this->teacherFinder = new ComboBoxFinderView(this);
     this->teacherFinder->setModel(this->personsModel);
-    this->teacherFinder->hide();
     this->ui->menuLayout->insertWidget(1, this->teacherFinder);
-
-    connect(this->teacherFinder, &ComboBoxFinderView::foundItem, this, &ClassesModule::handleTeacherChanging);
 
     this->itemForAdditionFinder = new ComboBoxFinderView(this);
     this->ui->additionMenuLayout->insertWidget(0, this->itemForAdditionFinder);
@@ -507,26 +528,18 @@ void ClassesModule::setupLists()
 
     // handle selection
     connect(this->ui->subjectsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &ClassesModule::handleSelectedItems);
+
+    // handle item addition confirm
+    connect(this->ui->confirmItemAddition, &QPushButton::clicked, this, &ClassesModule::completeItemAddition);
 }
 
 void ClassesModule::setupToolBar()
 {
-    this->ui->itemAdditionMenu->hide();
-    this->ui->deleteItem->hide();
-    this->ui->addItem->hide();
-
     // handle item deletion
     connect(this->ui->deleteItem, &QPushButton::clicked, this, &ClassesModule::handleItemsDeletion);
 
-    // handle item addition
-    connect(this->ui->addItem, &QPushButton::clicked, this, &ClassesModule::initItemAddition);
-
     this->classCreationAction = new QAction("Create class");
-    connect(this->classCreationAction, &QAction::triggered, this, &ClassesModule::initClassCreation);
-
     this->classDeletionAction = new QAction("Delete class");
-    this->classDeletionAction->setDisabled(true);
-    connect(this->classDeletionAction, &QAction::triggered, this, &ClassesModule::handleClassDeletion);
 
     this->menu = new QMenu(this);
     this->menu->addAction(this->classCreationAction);
@@ -534,6 +547,65 @@ void ClassesModule::setupToolBar()
 
     this->ui->toolButton->setMenu(this->menu);
     this->ui->toolButton->setPopupMode(QToolButton::MenuButtonPopup);
+}
+
+void ClassesModule::setupStateMachine()
+{
+    this->stateMachine = new QStateMachine(this);
+
+    this->classesNotLoaded = new QState();
+    this->classesLoaded = new QState();
+    this->inClassCreation = new QState();
+    this->classSelected = new QState();
+    this->inItemAddition = new QState();
+    this->inItemDelition = new QState();
+    this->inTeacherChanging = new QState();
+    this->inClassDelition = new QState();
+
+    this->classesNotLoaded->addTransition(this, &ClassesModule::goInClassesLoaded, this->classesLoaded); // manual
+    this->classesNotLoaded->addTransition(this->classCreationAction, &QAction::triggered, this->inClassCreation);
+    connect(this->classesNotLoaded, &QState::entered, this, &ClassesModule::enterToClassesNotLoaded);
+
+    this->classesLoaded->addTransition(this->classFinder, &ComboBoxFinderView::foundItem, this->classSelected);
+    this->classesLoaded->addTransition(this->classCreationAction, &QAction::triggered, this->inClassCreation);
+    connect(this->classesLoaded, &QState::entered, this, &ClassesModule::enterToClassesLoaded);
+
+    this->inClassCreation->addTransition(this, &ClassesModule::goInClassSelected, this->classSelected); // manual
+    this->inClassCreation->addTransition(this, &ClassesModule::goInClassesNotLoaded, this->classesNotLoaded); // manual
+    connect(this->inClassCreation, &QState::entered, this, &ClassesModule::initClassCreation);
+
+    this->classSelected->addTransition(this->ui->addItem, &QPushButton::clicked, this->inItemAddition);
+    this->classSelected->addTransition(this, &ClassesModule::goInInItemDelition, this->inItemDelition); // manual
+    this->classSelected->addTransition(this->teacherFinder, &ComboBoxFinderView::foundItem, this->inTeacherChanging);
+    this->classSelected->addTransition(this->classDeletionAction, &QAction::triggered, this->inClassDelition);
+    this->classSelected->addTransition(this->classCreationAction, &QAction::triggered, this->inClassCreation);
+    this->classSelected->addTransition(this, &ClassesModule::goInClassesLoaded, this->classesLoaded); // manual
+    connect(this->classSelected, &QState::entered, this, &ClassesModule::enterToClassSelected);
+
+    this->inItemAddition->addTransition(this->ui->confirmItemAddition, &QPushButton::clicked, this->classSelected);
+    this->inItemAddition->addTransition(this->ui->abortItemAddition, &QPushButton::clicked, this->classSelected);
+    connect(this->inItemAddition, &QState::entered, this, &ClassesModule::initItemAddition);
+
+    this->inItemDelition->addTransition(this, &ClassesModule::goInClassSelected, this->classSelected); // manual
+    connect(this->inItemDelition, &QState::entered, this, &ClassesModule::enterToInItemDelition);
+
+    this->inTeacherChanging->addTransition(this, &ClassesModule::goInClassSelected, this->classSelected); // manual
+    connect(this->inTeacherChanging, &QState::entered, this, &ClassesModule::enterToInTeacherChanging);
+
+    this->inClassDelition->addTransition(this, &ClassesModule::goInClassSelected, this->classSelected); // manual
+    this->inClassDelition->addTransition(this, &ClassesModule::goInClassesNotLoaded, this->classesNotLoaded); // manual
+    connect(this->inClassDelition, &QState::entered, this, &ClassesModule::enterToInClassDelition);
+
+    this->stateMachine->addState(this->classesNotLoaded);
+    this->stateMachine->addState(this->classesLoaded);
+    this->stateMachine->addState(this->inClassCreation);
+    this->stateMachine->addState(this->classSelected);
+    this->stateMachine->addState(this->inItemAddition);
+    this->stateMachine->addState(this->inItemDelition);
+    this->stateMachine->addState(this->inClassDelition);
+    this->stateMachine->addState(this->inTeacherChanging);
+
+    this->stateMachine->setInitialState(this->classesNotLoaded);
 }
 
 bool ClassesModule::tryConnect()
@@ -559,9 +631,6 @@ void ClassesModule::abortConnection()
 
 bool ClassesModule::loadHomeroomTeacher()
 {
-    if(not this->currentClass())
-        return false;
-
     dbapi::ApiError error;
     auto teachers = dbapi::Classmate::loadAll(this->connection, &error);
 
@@ -598,9 +667,6 @@ bool ClassesModule::loadHomeroomTeacher()
 
 bool ClassesModule::loadStudentsList()
 {
-    if(not this->currentClass())
-        return false;
-
     auto grade = this->classesModel->grade(this->classFinder->currentIndex());
     auto error = this->classStudentsModel->loadStudents(grade->key());
 
@@ -612,9 +678,6 @@ bool ClassesModule::loadStudentsList()
 
 bool ClassesModule::loadSubjectsList()
 {
-    if(not this->currentClass())
-        return false;
-
     auto grade = this->classesModel->grade(this->classFinder->currentIndex());
     auto error = this->classSubjectsModel->loadSubjects(grade->key());
 
@@ -624,23 +687,16 @@ bool ClassesModule::loadSubjectsList()
     return true;
 }
 
-void ClassesModule::strictGuiForUnselectedClass()
+void ClassesModule::resetUi()
 {
-    this->teacherFinder->hide();
-
-    this->strictGuiForNoItemAddition();
-    this->strictGuiForNoItemDelition();
-
+    this->classFinder->setDisabled(true);
     this->classDeletionAction->setDisabled(true);
-}
 
-void ClassesModule::strictGuiForNoItemAddition()
-{
+    this->teacherFinder->hide();
     this->ui->itemAdditionMenu->hide();
     this->ui->addItem->hide();
-}
-
-void ClassesModule::strictGuiForNoItemDelition()
-{
     this->ui->deleteItem->hide();
+    this->ui->tabWidget->hide();
+
+    this->ui->verticalSpacer->changeSize(0, 10, QSizePolicy::Preferred, QSizePolicy::MinimumExpanding);
 }
