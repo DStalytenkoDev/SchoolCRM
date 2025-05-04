@@ -4,6 +4,7 @@
 
 #include <QWidget>
 #include <QItemSelection>
+#include <QStateMachine>
 #include "../ComboBoxFinderView.h"
 #include "../Persons/PersonsModel.h"
 #include "../Subjects/SubjectsModel.h"
@@ -52,26 +53,30 @@ private:
     QPersistentModelIndex activeItem;
     QItemSelection selectedItems;
 
+    QStateMachine* stateMachine;
+    QState* classesNotLoaded;
+    QState* classesLoaded;
+    QState* inClassCreation;
+    QState* classSelected;
+    QState* inItemAddition;
+    QState* inItemDelition;
+    QState* inClassDelition;
+    QState* inTeacherChanging;
+
     dbapi::Connection* connection = nullptr;
 
-    void handleFoundClass(QModelIndex index);
+    void enterToClassesNotLoaded();
+    void enterToClassesLoaded();
+    void enterToClassSelected();
+    void enterToInItemDelition();
+    void enterToInTeacherChanging();
+    void enterToInClassDelition();
 
     void handleClickedItem(const QModelIndex &index);
     void handleSelectedItems(const QItemSelection &selected, const QItemSelection &deselected);
-    void handleTeacherChanging(const QModelIndex &index);
-
     void handleItemsDeletion();
 
-    /// does not manages the connection
-    bool deleteSubjects();
-
-    /// does not manages the connection
-    bool deleteStudents();
-
-    void handleClassDeletion();
-
     void initItemAddition();
-    void abortItemAddition();
     void completeItemAddition();
 
     void initClassCreation();
@@ -87,6 +92,7 @@ private:
     void setupFinders();
     void setupLists();
     void setupToolBar();
+    void setupStateMachine();
 
     /// trys to open the connection, otherwise shows error
     bool tryConnect();
@@ -102,9 +108,18 @@ private:
     /// does not manage the connection
     bool loadSubjectsList();
 
-    void strictGuiForUnselectedClass();
-    void strictGuiForNoItemAddition();
-    void strictGuiForNoItemDelition();
+    /// does not manages the connection
+    bool deleteSubjects();
+    /// does not manages the connection
+    bool deleteStudents();
+
+    void resetUi();
+
+    private: signals:
+        void goInClassesLoaded();
+        void goInClassesNotLoaded();
+        void goInClassSelected();
+        void goInInItemDelition();
 };
 
 

@@ -8,7 +8,7 @@ ComboBoxFinderView::ComboBoxFinderView(QWidget *parent) : QComboBox(parent)
     this->setInsertPolicy(NoInsert);
 
     connect(this, &ComboBoxFinderView::editTextChanged, this, &ComboBoxFinderView::filter);
-    connect(this, &ComboBoxFinderView::currentIndexChanged, this, &ComboBoxFinderView::tellFoundItem);
+    connect(this, &ComboBoxFinderView::activated, this, &ComboBoxFinderView::tellFoundItem);
 
     this->proxyModel = new QSortFilterProxyModel(this);
     this->proxyModel->setSourceModel(this->model());

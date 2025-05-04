@@ -16,8 +16,11 @@ dbapi::ApiError ClassSubjectsModel::loadSubjects(const dbapi::Class::Key &key)
 
     this->items.clear();
 
-    if(not list.load())
-        return list.error();
+    list.load();
+
+    if(list.error().type != dbapi::ApiError::NoError)
+        if(list.error().type != dbapi::ApiError::KeyError)
+            return list.error();
 
     int len = list.subjects().count();
     dbapi::Subject subject(this->connection);
