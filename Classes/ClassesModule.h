@@ -50,18 +50,21 @@ private:
     ClassSubjectsModel* classSubjectsModel;
     ClassStudentsModel* classStudentsModel;
 
-    QPersistentModelIndex activeItem;
-    QItemSelection selectedItems;
-
     QStateMachine* stateMachine;
     QState* classesNotLoaded;
     QState* classesLoaded;
     QState* inClassCreation;
     QState* classSelected;
     QState* inItemAddition;
-    QState* inItemDelition;
+    QState* inSubjectsDeletion;
+    QState* inStudentsDeletion;
     QState* inClassDelition;
     QState* inTeacherChanging;
+
+    QState* resetGroupState;
+
+    QSignalTransition* deleteSubjectsTransition;
+    QSignalTransition* deleteStudentsTransition;
 
     dbapi::Connection* connection = nullptr;
 
@@ -72,9 +75,11 @@ private:
     void enterToInTeacherChanging();
     void enterToInClassDelition();
 
-    void handleClickedItem(const QModelIndex &index);
-    void handleSelectedItems(const QItemSelection &selected, const QItemSelection &deselected);
-    void handleItemsDeletion();
+    void handleSelectedSubjects(const QItemSelection &selected, const QItemSelection &deselected);
+    void handleSelectedStudents(const QItemSelection &selected, const QItemSelection &deselected);
+
+    void handleSubjectsDeletion();
+    void handleStudentsDeletion();
 
     void initItemAddition();
     void completeItemAddition();
@@ -119,7 +124,8 @@ private:
         void goInClassesLoaded();
         void goInClassesNotLoaded();
         void goInClassSelected();
-        void goInInItemDelition();
+        void goInInSubjectsDeletion();
+        void goInInStudentsDeletion();
 };
 
 
