@@ -1,5 +1,6 @@
 #include <QMessageBox>
 #include <qmenu.h>
+#include <QSignalTransition>
 #include <SchoolDatabaseApi/Classmate/Classmate.h>
 #include "ClassesModule.h"
 #include "ui_ClassesModule.h"
@@ -37,9 +38,10 @@ void ClassesModule::setConnection(dbapi::Connection *connection)
 void ClassesModule::prepare()
 {
     // reset state machine
-    this->stateMachine->stop();
-    this->stateMachine->setInitialState(this->classesNotLoaded);
-    this->stateMachine->start();
+    if(not this->stateMachine->isRunning())
+        this->stateMachine->start();
+
+    emit this->goInClassesNotLoaded();
 }
 
 ClassesModule::~ClassesModule()
@@ -153,6 +155,8 @@ void ClassesModule::enterToInTeacherChanging()
 
     // create new teacher
     dbapi::Classmate teacher({newTeacher->key()}, this->connection);
+    teacher.setGrade(grade->key());
+
     bool teacherStored = teacher.store();
 
     if(teacherDeleted and teacherStored)
@@ -224,44 +228,48 @@ void ClassesModule::enterToInClassDelition()
     this->connection->close();
 }
 
-void ClassesModule::handleClickedItem(const QModelIndex &index)
+void ClassesModule::handleSelectedSubjects(const QItemSelection &selected, const QItemSelection &deselected)
 {
-    this->selectedItems.clear();
-    this->selectedItems.select(index, index);
-
-    emit this->goInInItemDelition();
-}
-
-void ClassesModule::handleSelectedItems(const QItemSelection &selected, const QItemSelection &deselected)
-{
-    this->selectedItems = selected;
-
     if(selected.empty())
         emit this->goInClassSelected();
     else
-        emit this->goInInItemDelition();
+        emit this->goInInSubjectsDeletion();
 }
 
-void ClassesModule::handleItemsDeletion()
+void ClassesModule::handleSelectedStudents(const QItemSelection &selected, const QItemSelection &deselected)
+{
+    if(selected.empty())
+        emit this->goInClassSelected();
+    else
+        emit this->goInInStudentsDeletion();
+}
+
+void ClassesModule::handleSubjectsDeletion()
 {
     if(not this->tryConnect())
         return;
 
-    bool deleted;
-
-    // decide which items are for deletion and delete
-    if(selectedItems.front().model() == this->classStudentsModel)
-        deleted = this->deleteStudents();
-    else
-        deleted = this->deleteSubjects();
-
-    this->connection->close();
     emit this->goInClassSelected();
 
-    if(not deleted)
-        return this->showInternalError();
+    if(not this->deleteSubjects())
+        return this->abortConnection();
 
-    this->selectedItems.clear();
+    this->connection->close();
+
+    QMessageBox::information(this, "Deletion", "All selected items had been deleted");
+}
+
+void ClassesModule::handleStudentsDeletion()
+{
+    if(not this->tryConnect())
+        return;
+
+    emit this->goInClassSelected();
+
+    if(not this->deleteStudents())
+        return this->abortConnection();
+
+    this->connection->close();
 
     QMessageBox::information(this, "Deletion", "All selected items had been deleted");
 }
@@ -270,22 +278,16 @@ bool ClassesModule::deleteSubjects()
 {
     dbapi::ClassSubjectsList list({this->currentClass()->key()}, this->connection);
 
-    for(QModelIndex& index : this->selectedItems.indexes())
+    for(QModelIndex& index : this->ui->subjectsList->selectionModel()->selectedIndexes())
     {
         auto key = this->classSubjectsModel->subject(index);
-
-        list.appendSubject(key); // must add before delition 'cause must be deleted an item of the list by an iterator
-        list.removeSubject(list.subjects().cend() - 1);
+        list.appendSubject(key);
     }
 
     bool deleted = list.remove();
 
     if(not deleted)
         return false;
-
-    // hide (delete) deleted items
-    for(QModelIndex& index : this->selectedItems.indexes())
-        this->classSubjectsModel->removeRow(index.row());
 
     return true;
 }
@@ -295,7 +297,7 @@ bool ClassesModule::deleteStudents()
     dbapi::Student student(this->connection);
     bool failFlag = false;
 
-    for(QModelIndex& index : this->selectedItems.indexes())
+    for(QModelIndex& index : this->ui->studentsList->selectionModel()->selectedIndexes())
     {
         auto person = this->classStudentsModel->student(index);
 
@@ -303,8 +305,6 @@ bool ClassesModule::deleteStudents()
 
         if(not student.remove())
             failFlag = true;
-        else
-            this->classStudentsModel->removeRow(index.row());
     }
 
     if(failFlag)
@@ -352,6 +352,7 @@ void ClassesModule::completeItemAddition()
     this->connection->transaction();
 
     bool added = false;
+    auto grade = this->currentClass();
 
     // decide weather we add subjects or students
     if(this->itemForAdditionFinder->model() == this->personsModel)
@@ -360,6 +361,7 @@ void ClassesModule::completeItemAddition()
 
         auto person = this->personsModel->person(this->itemForAdditionFinder->currentIndex());
         dbapi::Student student({person->key()}, this->connection);
+        student.setGrade(grade->key());
 
         added = student.store();
     }
@@ -368,7 +370,6 @@ void ClassesModule::completeItemAddition()
         // add subject
 
         auto subject = this->subjectsModel->subject(this->itemForAdditionFinder->currentIndex());
-        auto grade = this->classesModel->grade(this->classFinder->currentIndex());
 
         dbapi::ClassSubjectsList list({grade->key()}, this->connection);
         list.appendSubject(subject->key());
@@ -513,21 +514,15 @@ void ClassesModule::setupLists()
     this->ui->subjectsList->setSelectionBehavior(QAbstractItemView::SelectRows);
     this->ui->subjectsList->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
-    // handle click
-    connect(this->ui->subjectsList, &QListView::doubleClicked, this, &ClassesModule::handleClickedItem);
-
     // handle selection
-    connect(this->ui->subjectsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &ClassesModule::handleSelectedItems);
+    connect(this->ui->subjectsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &ClassesModule::handleSelectedSubjects);
 
-    this->ui->studentsList->setModel(this->classSubjectsModel);
+    this->ui->studentsList->setModel(this->classStudentsModel);
     this->ui->studentsList->setSelectionBehavior(QAbstractItemView::SelectRows);
     this->ui->studentsList->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
-    // handle click
-    connect(this->ui->subjectsList, &QListView::doubleClicked, this, &ClassesModule::handleClickedItem);
-
     // handle selection
-    connect(this->ui->subjectsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &ClassesModule::handleSelectedItems);
+    connect(this->ui->studentsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &ClassesModule::handleSelectedStudents);
 
     // handle item addition confirm
     connect(this->ui->confirmItemAddition, &QPushButton::clicked, this, &ClassesModule::completeItemAddition);
@@ -535,9 +530,6 @@ void ClassesModule::setupLists()
 
 void ClassesModule::setupToolBar()
 {
-    // handle item deletion
-    connect(this->ui->deleteItem, &QPushButton::clicked, this, &ClassesModule::handleItemsDeletion);
-
     this->classCreationAction = new QAction("Create class");
     this->classDeletionAction = new QAction("Delete class");
 
@@ -552,15 +544,17 @@ void ClassesModule::setupToolBar()
 void ClassesModule::setupStateMachine()
 {
     this->stateMachine = new QStateMachine(this);
+    this->resetGroupState = new QState();
 
-    this->classesNotLoaded = new QState();
-    this->classesLoaded = new QState();
-    this->inClassCreation = new QState();
-    this->classSelected = new QState();
-    this->inItemAddition = new QState();
-    this->inItemDelition = new QState();
-    this->inTeacherChanging = new QState();
-    this->inClassDelition = new QState();
+    this->classesNotLoaded = new QState(this->resetGroupState);
+    this->classesLoaded = new QState(this->resetGroupState);
+    this->inClassCreation = new QState(this->resetGroupState);
+    this->classSelected = new QState(this->resetGroupState);
+    this->inItemAddition = new QState(this->resetGroupState);
+    this->inSubjectsDeletion = new QState(this->resetGroupState);
+    this->inStudentsDeletion = new QState(this->resetGroupState);
+    this->inTeacherChanging = new QState(this->resetGroupState);
+    this->inClassDelition = new QState(this->resetGroupState);
 
     this->classesNotLoaded->addTransition(this, &ClassesModule::goInClassesLoaded, this->classesLoaded); // manual
     this->classesNotLoaded->addTransition(this->classCreationAction, &QAction::triggered, this->inClassCreation);
@@ -575,19 +569,32 @@ void ClassesModule::setupStateMachine()
     connect(this->inClassCreation, &QState::entered, this, &ClassesModule::initClassCreation);
 
     this->classSelected->addTransition(this->ui->addItem, &QPushButton::clicked, this->inItemAddition);
-    this->classSelected->addTransition(this, &ClassesModule::goInInItemDelition, this->inItemDelition); // manual
+    this->classSelected->addTransition(this, &ClassesModule::goInInStudentsDeletion, this->inStudentsDeletion); // manual
+    this->classSelected->addTransition(this, &ClassesModule::goInInSubjectsDeletion, this->inSubjectsDeletion); // manual
     this->classSelected->addTransition(this->teacherFinder, &ComboBoxFinderView::foundItem, this->inTeacherChanging);
     this->classSelected->addTransition(this->classDeletionAction, &QAction::triggered, this->inClassDelition);
     this->classSelected->addTransition(this->classCreationAction, &QAction::triggered, this->inClassCreation);
     this->classSelected->addTransition(this, &ClassesModule::goInClassesLoaded, this->classesLoaded); // manual
+    this->classSelected->addTransition(this->classFinder, &ComboBoxFinderView::foundItem, this->classSelected);
     connect(this->classSelected, &QState::entered, this, &ClassesModule::enterToClassSelected);
 
     this->inItemAddition->addTransition(this->ui->confirmItemAddition, &QPushButton::clicked, this->classSelected);
     this->inItemAddition->addTransition(this->ui->abortItemAddition, &QPushButton::clicked, this->classSelected);
     connect(this->inItemAddition, &QState::entered, this, &ClassesModule::initItemAddition);
 
-    this->inItemDelition->addTransition(this, &ClassesModule::goInClassSelected, this->classSelected); // manual
-    connect(this->inItemDelition, &QState::entered, this, &ClassesModule::enterToInItemDelition);
+    this->deleteStudentsTransition = new QSignalTransition(this->ui->deleteItem, &QPushButton::clicked); // targetless transition
+    this->deleteSubjectsTransition = new QSignalTransition(this->ui->deleteItem, &QPushButton::clicked); // targetless transition
+
+    connect(this->deleteStudentsTransition, &QSignalTransition::triggered, this, &ClassesModule::handleStudentsDeletion);
+    connect(this->deleteSubjectsTransition, &QSignalTransition::triggered, this, &ClassesModule::handleSubjectsDeletion);
+
+    this->inSubjectsDeletion->addTransition(this, &ClassesModule::goInClassSelected, this->classSelected); // manual
+    this->inSubjectsDeletion->addTransition(this->deleteSubjectsTransition);
+    connect(this->inSubjectsDeletion, &QState::entered, this, &ClassesModule::enterToInItemDelition);
+
+    this->inStudentsDeletion->addTransition(this, &ClassesModule::goInClassSelected, this->classSelected); // manual
+    this->inStudentsDeletion->addTransition(this->deleteStudentsTransition);
+    connect(this->inStudentsDeletion, &QState::entered, this, &ClassesModule::enterToInItemDelition);
 
     this->inTeacherChanging->addTransition(this, &ClassesModule::goInClassSelected, this->classSelected); // manual
     connect(this->inTeacherChanging, &QState::entered, this, &ClassesModule::enterToInTeacherChanging);
@@ -596,16 +603,11 @@ void ClassesModule::setupStateMachine()
     this->inClassDelition->addTransition(this, &ClassesModule::goInClassesNotLoaded, this->classesNotLoaded); // manual
     connect(this->inClassDelition, &QState::entered, this, &ClassesModule::enterToInClassDelition);
 
-    this->stateMachine->addState(this->classesNotLoaded);
-    this->stateMachine->addState(this->classesLoaded);
-    this->stateMachine->addState(this->inClassCreation);
-    this->stateMachine->addState(this->classSelected);
-    this->stateMachine->addState(this->inItemAddition);
-    this->stateMachine->addState(this->inItemDelition);
-    this->stateMachine->addState(this->inClassDelition);
-    this->stateMachine->addState(this->inTeacherChanging);
+    this->resetGroupState->setInitialState(this->classesNotLoaded);
+    this->resetGroupState->addTransition(this, &ClassesModule::goInClassesNotLoaded, this->classesNotLoaded);
 
-    this->stateMachine->setInitialState(this->classesNotLoaded);
+    this->stateMachine->addState(this->resetGroupState);
+    this->stateMachine->setInitialState(this->resetGroupState);
 }
 
 bool ClassesModule::tryConnect()
