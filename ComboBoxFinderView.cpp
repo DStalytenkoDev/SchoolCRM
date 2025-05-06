@@ -1,24 +1,33 @@
 #include "ComboBoxFinderView.h"
 #include <QCompleter>
+#include <QEvent>
+#include <QAbstractItemView>
+#include <qlineedit.h>
 
 
 ComboBoxFinderView::ComboBoxFinderView(QWidget *parent) : QComboBox(parent)
 {
-    this->setEditable(true);
     this->setInsertPolicy(NoInsert);
 
     connect(this, &ComboBoxFinderView::editTextChanged, this, &ComboBoxFinderView::filter);
-    connect(this, &ComboBoxFinderView::activated, this, &ComboBoxFinderView::tellFoundItem);
+    connect(this, &ComboBoxFinderView::activated, this, QOverload<int>::of(&ComboBoxFinderView::handleSelectedItem));
+    connect(this, &ComboBoxFinderView::currentIndexChanged, this, &ComboBoxFinderView::handleChangedIndex);
 
     this->proxyModel = new QSortFilterProxyModel(this);
     this->proxyModel->setSourceModel(this->model());
     this->proxyModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
     this->proxyModel->setFilterKeyColumn(this->modelColumn());
 
-    auto completer = new QCompleter(this);
-    completer->setModel(this->proxyModel);
-    completer->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
-    this->setCompleter(completer);
+    this->completer = new QCompleter(this->proxyModel, this);
+    this->completer->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
+
+    connect(this->completer, QOverload<const QModelIndex&>::of(&QCompleter::activated), this, QOverload<const QModelIndex&>::of(&ComboBoxFinderView::handleSelectedItem));
+
+    this->completer->setWidget(this);
+
+    this->setEditable(true);
+
+    this->setMinimumWidth(150);
 }
 
 void ComboBoxFinderView::setModel(QAbstractItemModel *model)
@@ -26,15 +35,30 @@ void ComboBoxFinderView::setModel(QAbstractItemModel *model)
     QComboBox::setModel(model);
 
     this->proxyModel->setSourceModel(model);
-    this->completer()->setModel(this->proxyModel);
+    this->completer->setModel(this->proxyModel);
 }
 
 void ComboBoxFinderView::filter(const QString& text)
 {
     this->proxyModel->setFilterFixedString(text);
+    this->completer->complete();
 }
 
-void ComboBoxFinderView::tellFoundItem(int index)
+void ComboBoxFinderView::handleSelectedItem(const QModelIndex &index)
 {
-    emit this->foundItem(this->model()->index(index, 0));
+    this->setCurrentIndex(index.row());
+    emit this->foundItem(index);
 }
+
+void ComboBoxFinderView::handleSelectedItem(int index)
+{
+    QModelIndex modelIndex = this->model()->index(index, 0);
+    emit this->foundItem(modelIndex);
+}
+
+void ComboBoxFinderView::handleChangedIndex(int index)
+{
+    QModelIndex modelIndex = this->model()->index(index, 0);
+    this->lineEdit()->setPlaceholderText(this->model()->data(modelIndex).toString());
+}
+

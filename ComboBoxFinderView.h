@@ -18,9 +18,14 @@ signals:
     void foundItem(QModelIndex);
 
 private:
-    void filter(const QString& text);
-    void tellFoundItem(int index);
     QSortFilterProxyModel* proxyModel;
+    QCompleter* completer;
+    //QLineEdit* lineEdit;
+
+    void filter(const QString& text);
+    void handleSelectedItem(const QModelIndex& index);
+    void handleSelectedItem(int index);
+    void handleChangedIndex(int index);
 };
 
 
