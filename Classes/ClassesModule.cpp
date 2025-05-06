@@ -68,6 +68,8 @@ void ClassesModule::enterToClassesNotLoaded()
 void ClassesModule::enterToClassesLoaded()
 {
     this->resetUi();
+
+    this->classFinder->setCurrentIndex(-1);
     this->classFinder->setDisabled(false);
 }
 
@@ -183,6 +185,7 @@ void ClassesModule::enterToInClassDelition()
 
     // delete class subjects
     dbapi::ClassSubjectsList subjectsList({grade->key()}, this->connection);
+    subjectsList.load();
     subjectsList.remove();
 
     // delete class students
@@ -417,6 +420,7 @@ void ClassesModule::initClassCreation()
 
     connect(this->classCreationDialog, &QDialog::finished, this, &ClassesModule::completeClassCreation);
 
+    this->resetUi();
     this->classCreationDialog->show();
 }
 
