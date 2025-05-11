@@ -54,6 +54,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Classes/ClassesModule.h Classes/ClassesModule.cpp Classes/ClassesModule.ui
         Classes/ClassCreationDialog.h Classes/ClassCreationDialog.cpp Classes/ClassCreationDialog.ui
 
+        Journal/JournalModel.h Journal/JournalModel.cpp
+        Journal/MarkDelegate.h Journal/MarkDelegate.cpp
+
 
 
     )
