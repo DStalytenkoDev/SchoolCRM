@@ -22,14 +22,23 @@ public:
     dbapi::ApiError load();
     dbapi::ApiError store(const QModelIndex& index, int value);
 
+    dbapi::StudentMark* mark(const QModelIndex& index);
+    dbapi::StudentMark* mark(int row, int column);
+
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
+
     ~JournalModel();
 
 private:
     QList<dbapi::Person*> students;
     QList<QList<dbapi::StudentMark*>> marksTable;
 
-    int rowCount = 0;
-    int columnCount = 0;
+    int _rowCount = 0;
+    int _columnCount = 0;
 
     QDate rangeBegin;
     QDate rangeEnd;
@@ -46,6 +55,9 @@ private:
 
     void initTable(int rows, int columns);
     void freeAll();
+
+    QVariant verticalHeader(int row) const;
+    QVariant horizontalHeader(int column) const;
 };
 
 
