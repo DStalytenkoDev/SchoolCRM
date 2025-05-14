@@ -87,6 +87,104 @@ dbapi::ApiError JournalModel::load()
 
 dbapi::ApiError JournalModel::store(const QModelIndex& index, int value)
 {
+    if(index.isValid())
+        return {dbapi::ApiError::KeyError, "inavlid index in Journal::store()"};
+
+    if(index.row() >= this->_rowCount)
+        return {dbapi::ApiError::KeyError, "inavlid index in Journal::store()"};
+
+    if(index.column() >= this->_columnCount)
+        return {dbapi::ApiError::KeyError, "inavlid index in Journal::store()"};
+
+
+
+}
+
+dbapi::StudentMark *JournalModel::mark(const QModelIndex &index)
+{
+    if(index.isValid())
+        return nullptr;
+
+    if(index.row() >= this->_rowCount)
+        return nullptr;
+
+    if(index.column() >= this->_columnCount)
+        return nullptr;
+
+    return this->marksTable[index.row()][index.column()];
+}
+
+dbapi::StudentMark *JournalModel::mark(int row, int column)
+{
+    if(row >= this->_rowCount)
+        return nullptr;
+
+    if(column >= this->_columnCount)
+        return nullptr;
+
+    return this->marksTable[row][column];
+}
+
+int JournalModel::rowCount(const QModelIndex &parent) const
+{
+    return this->_rowCount;
+}
+
+int JournalModel::columnCount(const QModelIndex &parent) const
+{
+    return this->_columnCount;
+}
+
+QVariant JournalModel::data(const QModelIndex &index, int role) const
+{
+    if(role != Qt::DisplayRole)
+        return {};
+
+    if(index.isValid())
+        return {};
+
+    if(index.row() >= this->_rowCount)
+        return {};
+
+    if(index.column() >= this->_columnCount)
+        return {};
+
+    return this->marksTable[index.row()][index.column()]->mark();
+}
+
+QVariant JournalModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if(role != Qt::DisplayRole)
+        return {};
+
+    switch(orientation)
+    {
+    case Qt::Horizontal:
+        return this->horizontalHeader(section);
+    case Qt::Vertical:
+        return this->verticalHeader(section);
+    }
+
+    return {};
+}
+
+Qt::ItemFlags JournalModel::flags(const QModelIndex &index) const
+{
+    if(index.isValid())
+        return {};
+
+    if(index.row() >= this->_rowCount)
+        return {};
+
+    if(index.column() >= this->_columnCount)
+        return {};
+
+    auto mark = this->marksTable[index.row()][index.column()];
+
+    if(mark == nullptr)
+        return {Qt::ItemIsEnabled | Qt::ItemIsEditable};
+
+    return {Qt::ItemIsEnabled};
 }
 
 JournalModel::~JournalModel()
@@ -147,8 +245,8 @@ void JournalModel::initTable(int rows, int columns)
     for(auto& row : this->marksTable)
         row.resize(columns);
 
-    this->rowCount = rows;
-    this->columnCount = columns;
+    this->_rowCount = rows;
+    this->_columnCount = columns;
 }
 
 void JournalModel::freeAll()
@@ -159,4 +257,22 @@ void JournalModel::freeAll()
 
     for(auto student : this->students)
         delete student;
+}
+
+QVariant JournalModel::verticalHeader(int row) const
+{
+    if(row < 0 or row >= this->_columnCount)
+        return {};
+
+    return this->rangeBegin.addDays(row).toString();
+}
+
+QVariant JournalModel::horizontalHeader(int column) const
+{
+    if(column < 0 or column >= this->_columnCount)
+        return {};
+
+    auto student = this->students[column];
+
+    return QString("%1 %2").arg(student->firstName(), student->secondName());
 }
