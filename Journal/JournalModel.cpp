@@ -85,9 +85,9 @@ dbapi::ApiError JournalModel::load()
     return {};
 }
 
-dbapi::ApiError JournalModel::store(const QModelIndex& index, int value)
+dbapi::ApiError JournalModel::store(const QModelIndex& index, int value, const dbapi::Person::Key &teacher)
 {
-    if(index.isValid())
+    if(not index.isValid())
         return {dbapi::ApiError::KeyError, "inavlid index in Journal::store()"};
 
     if(index.row() >= this->_rowCount)
@@ -96,8 +96,98 @@ dbapi::ApiError JournalModel::store(const QModelIndex& index, int value)
     if(index.column() >= this->_columnCount)
         return {dbapi::ApiError::KeyError, "inavlid index in Journal::store()"};
 
+    dbapi::StudentMark* & cell = this->marksTable[index.row()][index.column()];
 
+    if(cell)
+        return {dbapi::ApiError::KeyError, "mark already exists Journal::store()"};
 
+    dbapi::StudentMark mark(this->connection);
+    mark.setStudent(this->students[index.row()]->key());
+    mark.setDate(this->rangeBegin.addDays(index.column()));
+    mark.setMark(value);
+    mark.setTeacher(teacher);
+    mark.setSubject(this->subjectKey);
+    mark.setType(this->type);
+
+    if(not mark.store())
+        return mark.error();
+
+    cell = new dbapi::StudentMark(mark);
+    emit this->dataChanged(index, index, {Qt::DisplayRole});
+
+    return {};
+}
+
+dbapi::ApiError JournalModel::remove(const QModelIndex &topLeft, const QModelIndex &bottomRight)
+{
+    if(not topLeft.isValid() or not bottomRight.isValid())
+         return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
+
+    if(topLeft.row() >= this->_rowCount)
+        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
+
+    if(topLeft.column() >= this->_columnCount)
+        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
+
+    if(bottomRight.row() >= this->_rowCount)
+        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
+
+    if(bottomRight.column() >= this->_columnCount)
+        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
+
+    if(bottomRight.row() < topLeft.row())
+        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
+
+    if(bottomRight.column() < topLeft.column())
+        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
+
+    this->connection->transaction();
+    dbapi::ApiError error;
+
+    for(int row = topLeft.row(); row <= bottomRight.row(); row++)
+    {
+        for(int column = topLeft.column(); column <= bottomRight.column(); column++)
+        {
+            auto mark = this->marksTable[row][column];
+
+            if(not mark)
+                continue;
+
+            if(not mark->remove())
+            {
+                error = mark->error();
+                break;
+            }
+        }
+    }
+
+    if(error.type != dbapi::ApiError::NoError)
+    {
+        this->connection->rollback();
+        return error;
+    }
+
+    this->connection->commit();
+
+    this->beginResetModel();
+
+    for(int row = topLeft.row(); row <= bottomRight.row(); row++)
+    {
+        for(int column = topLeft.column(); column <= bottomRight.column(); column++)
+        {
+            auto& mark = this->marksTable[row][column];
+
+            if(not mark)
+                continue;
+
+            delete mark;
+            mark = nullptr;
+        }
+    }
+
+    this->endResetModel();
+
+    return {};
 }
 
 dbapi::StudentMark *JournalModel::mark(const QModelIndex &index)
@@ -149,7 +239,12 @@ QVariant JournalModel::data(const QModelIndex &index, int role) const
     if(index.column() >= this->_columnCount)
         return {};
 
-    return this->marksTable[index.row()][index.column()]->mark();
+    auto mark = this->marksTable[index.row()][index.column()];
+
+    if(not mark)
+        return {};
+
+    return mark->mark();
 }
 
 QVariant JournalModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -166,25 +261,6 @@ QVariant JournalModel::headerData(int section, Qt::Orientation orientation, int 
     }
 
     return {};
-}
-
-Qt::ItemFlags JournalModel::flags(const QModelIndex &index) const
-{
-    if(index.isValid())
-        return {};
-
-    if(index.row() >= this->_rowCount)
-        return {};
-
-    if(index.column() >= this->_columnCount)
-        return {};
-
-    auto mark = this->marksTable[index.row()][index.column()];
-
-    if(mark == nullptr)
-        return {Qt::ItemIsEnabled | Qt::ItemIsEditable};
-
-    return {Qt::ItemIsEnabled};
 }
 
 JournalModel::~JournalModel()

@@ -20,7 +20,8 @@ public:
     void setDateRange(const QDate& begin, const QDate& end);
 
     dbapi::ApiError load();
-    dbapi::ApiError store(const QModelIndex& index, int value);
+    dbapi::ApiError store(const QModelIndex& index, int value, const dbapi::Person::Key& teacher);
+    dbapi::ApiError remove(const QModelIndex& topLeft, const QModelIndex& bottomRight);
 
     dbapi::StudentMark* mark(const QModelIndex& index);
     dbapi::StudentMark* mark(int row, int column);
@@ -29,7 +30,6 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
-    Qt::ItemFlags flags(const QModelIndex &index) const override;
 
     ~JournalModel();
 
