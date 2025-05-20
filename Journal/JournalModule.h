@@ -9,6 +9,7 @@
 #include "../Classes/ClassStudentsModel.h"
 #include "../Classes/ClassSubjectsModel.h"
 #include "../Classes/ClassesModel.h"
+#include "../Persons/PersonsModel.h"
 
 #include "../ComboBoxFinderView.h"
 
@@ -46,6 +47,7 @@ private:
     ClassesModel* classesModel;
     ClassStudentsModel* classStudentsModel;
     ClassSubjectsModel* classSubjectsModel;
+    PersonsModel* personsModel;
 
     QStateMachine* stateMachine;
     QState* classesNotLoaded;
@@ -70,6 +72,7 @@ private:
     void handleMarksDeleting();
 
     void handleKeyChange();
+    void handleSelectedSubject();
 
     void initMarkCreating();
     void completeMarkCreating();
