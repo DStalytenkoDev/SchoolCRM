@@ -1,4 +1,5 @@
 #include <QMessageBox>
+#include <SchoolDatabaseApi/TeacherSubjectsList/TeacherSubjectsList.h>
 
 #include "JournalModule.h"
 #include "ui_JournalModule.h"
@@ -130,6 +131,18 @@ void JournalModule::handleKeyChange()
         return this->showInternalError();
 }
 
+void JournalModule::handleSelectedSubject()
+{
+    if(not this->tryConnect())
+        return;
+
+    bool loaded = this->loadCompatibleTeachers();
+    this->connection->close();
+
+    if(not loaded)
+        this->showInternalError();
+}
+
 void JournalModule::handleMarksDeleting()
 {
     emit this->setKeySelectedState();
@@ -211,10 +224,27 @@ dbapi::Class *JournalModule::currentClass()
 
 bool JournalModule::loadCompatibleTeachers()
 {
+    dbapi::ApiError error;
+    auto lists = dbapi::TeacherSubjectsList::loadAll(this->connection, &error);
 
+    if(error.type != dbapi::ApiError::NoError)
+        return false;
+
+    for(auto list : lists)
+    {
+        dbapi::Subject::Key key(this->classSubjectsModel->subject(this->subjectFinder->currentIndex()));
+
+        // personsModel must be cleared
+
+        if(list->subjects().contains(key))
+            this->personsModel->insertRow(0, dbapi::Person(list->key().person, this->connection));
+
+        delete list;
+    }
+
+    return true;
 }
 
 void JournalModule::resetUi()
 {
-
 }
