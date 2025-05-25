@@ -44,6 +44,11 @@ MainWindow::MainWindow(QWidget *parent)
     this->classes->hide();
     this->classes->setConnection(&this->connection);
 
+    // journal
+    this->journal = new JournalModule(this);
+    this->journal->hide();
+    this->journal->setConnection(&this->connection);
+
     // home page (installed by the designer)
     this->lastModule = this->ui->homeFrame;
 }
@@ -80,6 +85,12 @@ void MainWindow::manageLeftBarActions(QTreeWidgetItem *item, int column)
         this->swapMainWidget(this->classes);
         this->classes->prepare();
     }
+
+    if(text == "Journal")
+    {
+        this->swapMainWidget(this->journal);
+        this->journal->prepare();
+    }
 }
 
 void MainWindow::initAuthorization()
@@ -103,7 +114,7 @@ void MainWindow::completeAuthorization(int code)
         this->connection.setPassword(this->authorizationDialog->password());
     }
 
-    emit this->ui->statusbar->showMessage("Connecting in progress...");
+    this->ui->statusbar->showMessage("Connecting in progress...");
 
     bool opened = this->connection.open();
 
@@ -111,11 +122,11 @@ void MainWindow::completeAuthorization(int code)
 
     if(not opened)
     {
-        emit this->ui->statusbar->showMessage("Connecting failed");
+        this->ui->statusbar->showMessage("Connecting failed");
         return;
     }
 
-    emit this->ui->statusbar->showMessage("Server is connected");
+    this->ui->statusbar->showMessage("Server is connected");
     this->connection.close();
 }
 
