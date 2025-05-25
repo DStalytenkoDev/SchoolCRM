@@ -12,6 +12,7 @@
 #include "../Persons/PersonsModel.h"
 
 #include "../ComboBoxFinderView.h"
+#include "MarkCreatingDialog.h"
 
 #include "MarkTypeSelector.h"
 #include "JournalModel.h"
@@ -40,7 +41,6 @@ private:
     ComboBoxFinderView* classFinder;
     ComboBoxFinderView* subjectFinder;
     MarkTypeSelector* markTypeFinder;
-    ComboBoxFinderView* teacherFinder;
 
     JournalModel* journalModel;
 
@@ -61,6 +61,9 @@ private:
 
     dbapi::Connection* connection = nullptr;
 
+    MarkCreatingDialog* markCreatingDialog = nullptr;
+    QPersistentModelIndex selectedMark;
+
     void enterClassesNotLoadedState();
     void enterClassesLoadedState();
     void enterClassSelectedState();
@@ -73,6 +76,7 @@ private:
 
     void handleKeyChange();
     void handleSelectedSubject();
+    void onClassSelectedToKeySelectedTransition();
 
     void initMarkCreating();
     void completeMarkCreating();
@@ -98,7 +102,6 @@ private:
 private: signals:
     void setClassesNotLoadedState();
     void setClassesLoadedState();
-    void setClassSelectedState();
     void setKeySelectedState();
     void setEmptyCellSelectedState();
     void setRangeSelectedState();
