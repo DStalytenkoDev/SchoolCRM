@@ -399,8 +399,5 @@ void JournalModule::resetUi()
 
     this->ui->journal->hide();
 
-    this->ui->mainLayout->addItem(this->journalSpacer);
-
     this->layout()->addItem(this->journalSpacer);
-    //this->layout()->addWidget(new QLabel("aaa", this));
 }
