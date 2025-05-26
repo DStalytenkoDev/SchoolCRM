@@ -5,6 +5,7 @@
 #include <QWidget>
 #include <QStateMachine>
 #include <QDateEdit>
+#include <QSpacerItem>
 
 #include "../Classes/ClassStudentsModel.h"
 #include "../Classes/ClassSubjectsModel.h"
@@ -37,6 +38,7 @@ public:
 
 private:
     Ui::JournalModule *ui;
+    QSpacerItem* journalSpacer;
 
     ComboBoxFinderView* classFinder;
     ComboBoxFinderView* subjectFinder;

@@ -1,5 +1,6 @@
 #include <QMessageBox>
 #include <SchoolDatabaseApi/TeacherSubjectsList/TeacherSubjectsList.h>
+#include <qlabel.h>
 #include <qsignaltransition.h>
 
 #include "JournalModule.h"
@@ -10,6 +11,7 @@ JournalModule::JournalModule(QWidget *parent)
     , ui(new Ui::JournalModule)
 {
     ui->setupUi(this);
+    this->journalSpacer = new QSpacerItem(0, 0, QSizePolicy::Preferred, QSizePolicy::MinimumExpanding);
 
     this->journalModel = new JournalModel(this);
     this->classesModel = new ClassesModel(this);
@@ -23,8 +25,6 @@ JournalModule::JournalModule(QWidget *parent)
     this->setupJournal();
     this->setupToolBar();
     this->setupStateMachine();
-
-    this->ui->mainLayout->removeItem(this->ui->bottomSpacer);
 }
 
 void JournalModule::setConnection(dbapi::Connection *connection)
@@ -49,7 +49,7 @@ void JournalModule::prepare()
 
 JournalModule::~JournalModule()
 {
-    delete this->ui->bottomSpacer;
+    delete this->journalSpacer;
     delete ui;
 }
 
@@ -108,13 +108,14 @@ void JournalModule::enterKeySelectedState()
     this->resetUi();
 
     this->ui->journal->setHidden(false);
-    this->subjectFinder->setHidden(false);
-    this->classFinder->setHidden(false);
-    this->markTypeFinder->setHidden(false);
     this->ui->beginDate->setHidden(false);
     this->ui->endDate->setHidden(false);
 
-    this->ui->mainLayout->removeItem(this->ui->bottomSpacer);
+    this->subjectFinder->setHidden(false);
+    this->classFinder->setHidden(false);
+    this->markTypeFinder->setHidden(false);
+
+    this->layout()->removeItem(this->journalSpacer);
 }
 
 void JournalModule::enterEmptyCellSelectedState()
@@ -398,5 +399,8 @@ void JournalModule::resetUi()
 
     this->ui->journal->hide();
 
-    this->ui->mainLayout->addSpacerItem(this->ui->bottomSpacer);
+    this->ui->mainLayout->addItem(this->journalSpacer);
+
+    this->layout()->addItem(this->journalSpacer);
+    //this->layout()->addWidget(new QLabel("aaa", this));
 }
