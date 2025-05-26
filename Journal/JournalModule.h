@@ -73,12 +73,11 @@ private:
     void enterEmptyCellSelectedState();
     void enterRangeSelectedState();
 
-    void handleSelectedMarks(const QItemSelection &selected, const QItemSelection &deselected);
+    void handleSelectedMarks();
     void handleMarksDeleting();
 
-    void handleKeyChange();
-    void handleSelectedSubject();
-    void onClassSelectedToKeySelectedTransition();
+    void handleJournalLoading();
+    void handleJournalAndTeachersLoading();
 
     void initMarkCreating();
     void completeMarkCreating();

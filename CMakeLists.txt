@@ -57,6 +57,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Journal/JournalModel.h Journal/JournalModel.cpp
         Journal/JournalModule.h Journal/JournalModule.cpp Journal/JournalModule.ui
         Journal/MarkCreatingDialog.h Journal/MarkCreatingDialog.cpp Journal/MarkCreatingDialog.ui
+
+        TransitionFactrory.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET SchoolCRM APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

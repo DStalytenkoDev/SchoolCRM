@@ -5,6 +5,7 @@
 #include <QAbstractTableModel>
 #include <SchoolDatabaseApi/StudentMark/StudentMark.h>
 #include <SchoolDatabaseApi/Student/Student.h>
+#include <QItemSelection>
 
 
 class JournalModel : public QAbstractTableModel
@@ -21,7 +22,7 @@ public:
 
     dbapi::ApiError load();
     dbapi::ApiError store(const QModelIndex& index, int value, const dbapi::Person::Key& teacher);
-    dbapi::ApiError remove(const QModelIndex& topLeft, const QModelIndex& bottomRight);
+    dbapi::ApiError remove(const QItemSelection& selection);
 
     dbapi::StudentMark* mark(const QModelIndex& index);
     dbapi::StudentMark* mark(int row, int column);

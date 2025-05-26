@@ -1,4 +1,5 @@
 #include "JournalModel.h"
+#include <qitemselectionmodel.h>
 
 JournalModel::JournalModel(QObject *parent)
     : QAbstractTableModel{parent}
@@ -29,9 +30,9 @@ void JournalModel::setDateRange(const QDate &begin, const QDate &end)
     this->rangeBegin = begin;
 
     if(end <= begin)
-        this->rangeEnd = end.addDays(1);
+        this->rangeEnd = begin.addDays(1);
     else
-        this->rangeBegin = end;
+        this->rangeEnd = end;
 }
 
 dbapi::ApiError JournalModel::load()
@@ -55,6 +56,9 @@ dbapi::ApiError JournalModel::load()
 
     int futureColumnCount = this->rangeBegin.daysTo(this->rangeEnd);
     int futureRowCount = students.size();
+
+    if(futureRowCount == 0)
+        futureColumnCount = 0;
 
     this->initTable(futureRowCount, futureColumnCount);
 
@@ -118,46 +122,30 @@ dbapi::ApiError JournalModel::store(const QModelIndex& index, int value, const d
     return {};
 }
 
-dbapi::ApiError JournalModel::remove(const QModelIndex &topLeft, const QModelIndex &bottomRight)
+dbapi::ApiError JournalModel::remove(const QItemSelection& selection)
 {
-    if(not topLeft.isValid() or not bottomRight.isValid())
-         return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
-
-    if(topLeft.row() >= this->_rowCount)
-        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
-
-    if(topLeft.column() >= this->_columnCount)
-        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
-
-    if(bottomRight.row() >= this->_rowCount)
-        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
-
-    if(bottomRight.column() >= this->_columnCount)
-        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
-
-    if(bottomRight.row() < topLeft.row())
-        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
-
-    if(bottomRight.column() < topLeft.column())
-        return {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
-
     this->connection->transaction();
     dbapi::ApiError error;
 
-    for(int row = topLeft.row(); row <= bottomRight.row(); row++)
+    for(auto index : selection.indexes())
     {
-        for(int column = topLeft.column(); column <= bottomRight.column(); column++)
+        if(	not index.isValid() or
+            index.row() >= this->_rowCount or
+            index.column() >= this->_columnCount)
         {
-            auto mark = this->marksTable[row][column];
+            error = {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
+            break;
+        }
 
-            if(not mark)
-                continue;
+        auto mark = this->marksTable[index.row()][index.column()];
 
-            if(not mark->remove())
-            {
-                error = mark->error();
-                break;
-            }
+        if(not mark)
+            continue;
+
+        if(not mark->remove())
+        {
+            error = mark->error();
+            break;
         }
     }
 
@@ -171,18 +159,15 @@ dbapi::ApiError JournalModel::remove(const QModelIndex &topLeft, const QModelInd
 
     this->beginResetModel();
 
-    for(int row = topLeft.row(); row <= bottomRight.row(); row++)
+    for(auto index : selection.indexes())
     {
-        for(int column = topLeft.column(); column <= bottomRight.column(); column++)
-        {
-            auto& mark = this->marksTable[row][column];
+        auto& mark = this->marksTable[index.row()][index.column()];
 
-            if(not mark)
-                continue;
+        if(not mark)
+            continue;
 
-            delete mark;
-            mark = nullptr;
-        }
+        delete mark;
+        mark = nullptr;
     }
 
     this->endResetModel();
@@ -192,7 +177,7 @@ dbapi::ApiError JournalModel::remove(const QModelIndex &topLeft, const QModelInd
 
 dbapi::StudentMark *JournalModel::mark(const QModelIndex &index)
 {
-    if(index.isValid())
+    if(not index.isValid())
         return nullptr;
 
     if(index.row() >= this->_rowCount)
@@ -230,7 +215,7 @@ QVariant JournalModel::data(const QModelIndex &index, int role) const
     if(role != Qt::DisplayRole)
         return {};
 
-    if(index.isValid())
+    if(not index.isValid())
         return {};
 
     if(index.row() >= this->_rowCount)
@@ -337,10 +322,12 @@ void JournalModel::freeAll()
 
 QVariant JournalModel::verticalHeader(int row) const
 {
-    if(row < 0 or row >= this->_columnCount)
+    if(row < 0 or row >= this->_rowCount)
         return {};
 
-    return this->rangeBegin.addDays(row).toString();
+    auto student = this->students[row];
+
+    return QString("%1 %2").arg(student->firstName(), student->secondName());
 }
 
 QVariant JournalModel::horizontalHeader(int column) const
@@ -348,7 +335,5 @@ QVariant JournalModel::horizontalHeader(int column) const
     if(column < 0 or column >= this->_columnCount)
         return {};
 
-    auto student = this->students[column];
-
-    return QString("%1 %2").arg(student->firstName(), student->secondName());
+    return this->rangeBegin.addDays(column).toString("dd/MM/yy");
 }
