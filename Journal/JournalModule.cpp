@@ -4,7 +4,9 @@
 #include <qsignaltransition.h>
 
 #include "JournalModule.h"
+#include "../TransitionFactrory.h"
 #include "ui_JournalModule.h"
+
 
 JournalModule::JournalModule(QWidget *parent)
     : QWidget(parent)
@@ -20,6 +22,8 @@ JournalModule::JournalModule(QWidget *parent)
     this->personsModel = new PersonsModel(this);
 
     this->markCreatingDialog = new MarkCreatingDialog(this);
+    this->markCreatingDialog->setTeachersModel(this->personsModel);
+    connect(this->markCreatingDialog, &QDialog::finished, this, &JournalModule::completeMarkCreating);
 
     this->setupFinders();
     this->setupJournal();
@@ -121,22 +125,27 @@ void JournalModule::enterKeySelectedState()
 void JournalModule::enterEmptyCellSelectedState()
 {
     this->ui->createMark->setHidden(false);
+    this->ui->deleteMark->setHidden(true);
+
 }
 
 void JournalModule::enterRangeSelectedState()
 {
+    this->ui->createMark->setHidden(true);
     this->ui->deleteMark->setHidden(false);
 }
 
-void JournalModule::handleSelectedMarks(const QItemSelection &selected, const QItemSelection &deselected)
+void JournalModule::handleSelectedMarks()
 {
-    if(selected.empty())
+    auto& selection = this->ui->journal->selectionModel()->selection();
+
+    if(selection.empty())
     {
         emit this->setKeySelectedState();
         return;
     }
 
-    auto indexes = selected.indexes();
+    auto indexes = selection.indexes();
 
     if(indexes.size() == 1 and this->journalModel->mark(indexes[0]) == nullptr)
         emit this->setEmptyCellSelectedState();
@@ -144,12 +153,29 @@ void JournalModule::handleSelectedMarks(const QItemSelection &selected, const QI
         emit this->setRangeSelectedState();
 }
 
-void JournalModule::handleKeyChange()
+void JournalModule::handleMarksDeleting()
+{
+    emit this->setKeySelectedState();
+
+    if(not this->tryConnect())
+        return;
+
+    auto error = this->journalModel->remove(this->ui->journal->selectionModel()->selection());
+
+    if(error.type != dbapi::ApiError::NoError)
+        return this->abortConnection();
+
+    QMessageBox::information(this, "Deletion", "All selected item had been deleted");
+}
+
+void JournalModule::handleJournalLoading()
 {
     if(not this->tryConnect())
         return;
 
     auto subject = this->classSubjectsModel->subject(this->subjectFinder->currentIndex());
+
+    this->journalModel->setClass(this->currentClass()->key());
     this->journalModel->setSubject(subject);
     this->journalModel->setType(this->markTypeFinder->getType());
     this->journalModel->setDateRange(this->ui->beginDate->date(), this->ui->endDate->date());
@@ -161,22 +187,17 @@ void JournalModule::handleKeyChange()
         return this->showInternalError();
 }
 
-void JournalModule::handleSelectedSubject()
+void JournalModule::handleJournalAndTeachersLoading()
 {
     if(not this->tryConnect())
         return;
 
-    bool loaded = this->loadCompatibleTeachers();
-    this->connection->close();
+    auto subject = this->classSubjectsModel->subject(this->subjectFinder->currentIndex());
 
-    if(not loaded)
-        this->showInternalError();
-}
-
-void JournalModule::onClassSelectedToKeySelectedTransition()
-{
-    if(not this->tryConnect())
-        return;
+    this->journalModel->setClass(this->currentClass()->key());
+    this->journalModel->setSubject(subject);
+    this->journalModel->setType(this->markTypeFinder->getType());
+    this->journalModel->setDateRange(this->ui->beginDate->date(), this->ui->endDate->date());
 
     auto error = this->journalModel->load();
 
@@ -187,24 +208,6 @@ void JournalModule::onClassSelectedToKeySelectedTransition()
         return this->abortConnection();
 
     this->connection->close();
-}
-
-void JournalModule::handleMarksDeleting()
-{
-    emit this->setKeySelectedState();
-
-    if(not this->tryConnect())
-        return;
-
-    for(auto& selectionRange : this->ui->journal->selectionModel()->selection())
-    {
-        auto error = this->journalModel->remove(selectionRange.topLeft(), selectionRange.bottomRight());
-
-        if(error.type != dbapi::ApiError::NoError)
-            return this->abortConnection();
-    }
-
-    QMessageBox::information(this, "Deletion", "All selected item had been deleted");
 }
 
 void JournalModule::initMarkCreating()
@@ -292,37 +295,36 @@ void JournalModule::setupStateMachine()
     connect(this->classesLoaded, &QState::entered, this, &JournalModule::enterClassesLoadedState);
 
     connect(this->classSelected, &QState::entered, this, &JournalModule::enterClassSelectedState);
-    auto transition = this->classSelected->addTransition(this->subjectFinder, &ComboBoxFinderView::foundItem, this->keySelected);
-    connect(transition, &QSignalTransition::triggered, this, &JournalModule::onClassSelectedToKeySelectedTransition);
     this->classSelected->addTransition(this->classFinder, &ComboBoxFinderView::foundItem, this->classSelected);
+    transition(this->subjectFinder, &ComboBoxFinderView::foundItem, this, &JournalModule::handleJournalAndTeachersLoading, this->classSelected, this->keySelected);
 
     connect(this->keySelected, &QState::entered, this, &JournalModule::enterKeySelectedState);
     this->keySelected->addTransition(this->classFinder, &ComboBoxFinderView::foundItem, this->classSelected);
     this->keySelected->addTransition(this, &JournalModule::setEmptyCellSelectedState, this->emptyCellSelected);
     this->keySelected->addTransition(this, &JournalModule::setRangeSelectedState, this->rangeSelected);
 
-    transition = new QSignalTransition(this->ui->beginDate, &QDateEdit::userDateChanged);
-    this->keySelected->addTransition(transition);
-    connect(transition, &QSignalTransition::triggered, this, &JournalModule::handleKeyChange);
+    transition(this->ui->beginDate, &QDateEdit::userDateChanged, this, &JournalModule::handleJournalLoading, this->keySelected);
+    transition(this->ui->endDate, &QDateEdit::userDateChanged, this, &JournalModule::handleJournalLoading, this->keySelected);
+    transition(this->markTypeFinder, &MarkTypeSelector::typeChanged, this, &JournalModule::handleJournalLoading, this->keySelected);
+    transition(this->subjectFinder, &ComboBoxFinderView::foundItem, this, &JournalModule::handleJournalAndTeachersLoading, this->keySelected);
 
-    transition = new QSignalTransition(this->ui->endDate, &QDateEdit::userDateChanged);
-    this->keySelected->addTransition(transition);
-    connect(transition, &QSignalTransition::triggered, this, &JournalModule::handleKeyChange);
-
-    transition = new QSignalTransition(this->markTypeFinder, &MarkTypeSelector::typeChanged);
-    this->keySelected->addTransition(transition);
-    connect(transition, &QSignalTransition::triggered, this, &JournalModule::handleKeyChange);
-
-    transition = new QSignalTransition(this->subjectFinder, &ComboBoxFinderView::foundItem);
-    this->keySelected->addTransition(transition);
-    connect(transition, &QSignalTransition::triggered, this, &JournalModule::handleSelectedSubject);
-    connect(transition, &QSignalTransition::triggered, this, &JournalModule::handleKeyChange);
-
-    this->emptyCellSelected->addTransition(this, &JournalModule::setKeySelectedState, this->keySelected);
     connect(this->emptyCellSelected, &QState::entered, this, &JournalModule::enterEmptyCellSelectedState);
+    this->emptyCellSelected->addTransition(this, &JournalModule::setKeySelectedState, this->keySelected);
+    this->emptyCellSelected->addTransition(this, &JournalModule::setRangeSelectedState, this->rangeSelected);
+    this->emptyCellSelected->addTransition(this->classFinder, &ComboBoxFinderView::foundItem, this->classSelected);
+    transition(this->ui->beginDate, &QDateEdit::userDateChanged, this, &JournalModule::handleJournalLoading, this->emptyCellSelected, this->keySelected);
+    transition(this->ui->endDate, &QDateEdit::userDateChanged, this, &JournalModule::handleJournalLoading, this->emptyCellSelected, this->keySelected);
+    transition(this->markTypeFinder, &MarkTypeSelector::typeChanged, this, &JournalModule::handleJournalLoading, this->emptyCellSelected, this->keySelected);
+    transition(this->subjectFinder, &ComboBoxFinderView::foundItem, this, &JournalModule::handleJournalAndTeachersLoading, this->emptyCellSelected, this->keySelected);
 
-    this->rangeSelected->addTransition(this, &JournalModule::setKeySelectedState, this->keySelected);
     connect(this->rangeSelected, &QState::entered, this, &JournalModule::enterRangeSelectedState);
+    this->rangeSelected->addTransition(this, &JournalModule::setKeySelectedState, this->keySelected);
+    this->rangeSelected->addTransition(this, &JournalModule::setEmptyCellSelectedState, this->emptyCellSelected);
+    this->rangeSelected->addTransition(this->classFinder, &ComboBoxFinderView::foundItem, this->classSelected);
+    transition(this->ui->beginDate, &QDateEdit::userDateChanged, this, &JournalModule::handleJournalLoading, this->rangeSelected, this->keySelected);
+    transition(this->ui->endDate, &QDateEdit::userDateChanged, this, &JournalModule::handleJournalLoading, this->rangeSelected, this->keySelected);
+    transition(this->markTypeFinder, &MarkTypeSelector::typeChanged, this, &JournalModule::handleJournalLoading, this->rangeSelected, this->keySelected);
+    transition(this->subjectFinder, &ComboBoxFinderView::foundItem, this, &JournalModule::handleJournalAndTeachersLoading, this->rangeSelected, this->keySelected);
 
     this->resetGroupState->setInitialState(this->classesNotLoaded);
     this->resetGroupState->addTransition(this, &JournalModule::setClassesNotLoadedState, this->classesNotLoaded);
@@ -377,7 +379,12 @@ bool JournalModule::loadCompatibleTeachers()
         // personsModel must be cleared
 
         if(list->subjects().contains(key))
-            this->personsModel->insertRow(0, dbapi::Person(list->key().person, this->connection));
+        {
+            dbapi::Person person(list->key().person, this->connection);
+
+            if(person.load())
+                this->personsModel->insertRow(0, person);
+        }
 
         delete list;
     }
