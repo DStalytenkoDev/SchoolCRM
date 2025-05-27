@@ -98,8 +98,6 @@ private:
 
     bool loadCompatibleTeachers();
 
-    void resetUi();
-
 private: signals:
     void setClassesNotLoadedState();
     void setClassesLoadedState();

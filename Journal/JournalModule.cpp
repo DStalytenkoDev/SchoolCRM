@@ -59,7 +59,20 @@ JournalModule::~JournalModule()
 
 void JournalModule::enterClassesNotLoadedState()
 {
-    this->resetUi();
+    this->classFinder->hide();
+    this->subjectFinder->hide();
+    this->markTypeFinder->hide();
+
+    this->ui->beginDate->hide();
+    this->ui->endDate->hide();
+
+    this->ui->createMark->hide();
+    this->ui->deleteMark->hide();
+    this->ui->abortSelection->hide();
+
+    this->ui->journal->hide();
+
+    this->layout()->addItem(this->journalSpacer);
 
     if(not this->tryConnect())
         return;
@@ -81,8 +94,6 @@ void JournalModule::enterClassesLoadedState()
 
 void JournalModule::enterClassSelectedState()
 {
-    this->resetUi();
-
     if(not this->tryConnect())
         return;
 
@@ -109,30 +120,26 @@ void JournalModule::enterClassSelectedState()
 
 void JournalModule::enterKeySelectedState()
 {
-    this->resetUi();
-
     this->ui->journal->setHidden(false);
-    this->ui->beginDate->setHidden(false);
-    this->ui->endDate->setHidden(false);
-
-    this->subjectFinder->setHidden(false);
-    this->classFinder->setHidden(false);
-    this->markTypeFinder->setHidden(false);
-
     this->layout()->removeItem(this->journalSpacer);
+
+    this->ui->createMark->hide();
+    this->ui->deleteMark->hide();
+    this->ui->abortSelection->hide();
 }
 
 void JournalModule::enterEmptyCellSelectedState()
 {
     this->ui->createMark->setHidden(false);
     this->ui->deleteMark->setHidden(true);
-
+    this->ui->abortSelection->setHidden(false);
 }
 
 void JournalModule::enterRangeSelectedState()
 {
     this->ui->createMark->setHidden(true);
     this->ui->deleteMark->setHidden(false);
+    this->ui->abortSelection->setHidden(false);
 }
 
 void JournalModule::handleSelectedMarks()
@@ -155,17 +162,23 @@ void JournalModule::handleSelectedMarks()
 
 void JournalModule::handleMarksDeleting()
 {
-    emit this->setKeySelectedState();
-
     if(not this->tryConnect())
+    {
+        emit this->setKeySelectedState();
         return;
+    }
 
     auto error = this->journalModel->remove(this->ui->journal->selectionModel()->selection());
+    this->connection->close();
 
     if(error.type != dbapi::ApiError::NoError)
-        return this->abortConnection();
+    {
+        emit this->setKeySelectedState();
+        return this->showInternalError();
+    }
 
     QMessageBox::information(this, "Deletion", "All selected item had been deleted");
+    emit this->setKeySelectedState();
 }
 
 void JournalModule::handleJournalLoading()
@@ -273,6 +286,7 @@ void JournalModule::setupToolBar()
 {
     connect(this->ui->createMark, &QPushButton::clicked, this, &JournalModule::initMarkCreating);
     connect(this->ui->deleteMark, &QPushButton::clicked, this, &JournalModule::handleMarksDeleting);
+    connect(this->ui->abortSelection, &QPushButton::clicked, this->ui->journal, &QTableView::clearSelection);
 }
 
 void JournalModule::setupStateMachine()
@@ -392,19 +406,20 @@ bool JournalModule::loadCompatibleTeachers()
     return true;
 }
 
-void JournalModule::resetUi()
-{
-    this->classFinder->hide();
-    this->subjectFinder->hide();
-    this->markTypeFinder->hide();
-
-    this->ui->beginDate->hide();
-    this->ui->endDate->hide();
-
-    this->ui->createMark->hide();
-    this->ui->deleteMark->hide();
-
-    this->ui->journal->hide();
-
-    this->layout()->addItem(this->journalSpacer);
-}
+//void JournalModule::resetUi()
+//{
+//    this->classFinder->hide();
+//    this->subjectFinder->hide();
+//    this->markTypeFinder->hide();
+//
+//    this->ui->beginDate->hide();
+//    this->ui->endDate->hide();
+//
+//    this->ui->createMark->hide();
+//    this->ui->deleteMark->hide();
+//    this->ui->abortSelection->hide();
+//
+//    this->ui->journal->hide();
+//
+//    this->layout()->addItem(this->journalSpacer);
+//}

@@ -61,6 +61,16 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QPushButton" name="abortSelection">
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset theme="QIcon::ThemeIcon::EditClear"/>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
