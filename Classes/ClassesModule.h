@@ -53,40 +53,37 @@ private:
     QStateMachine* stateMachine;
     QState* classesNotLoaded;
     QState* classesLoaded;
-    QState* inClassCreation;
     QState* classSelected;
-    QState* inItemAddition;
-    QState* inSubjectsDeletion;
-    QState* inStudentsDeletion;
-    QState* inClassDelition;
-    QState* inTeacherChanging;
+    QState* itemAdding;
+    QState* studentsSelected;
+    QState* subjectsSelected;
 
     QState* resetGroupState;
 
-    QSignalTransition* deleteSubjectsTransition;
-    QSignalTransition* deleteStudentsTransition;
-
     dbapi::Connection* connection = nullptr;
 
-    void enterToClassesNotLoaded();
-    void enterToClassesLoaded();
-    void enterToClassSelected();
-    void enterToInItemDelition();
-    void enterToInTeacherChanging();
-    void enterToInClassDelition();
+    void enterClassesNotLoaded();
+    void enterClassesLoaded();
+    void enterClassSelected();
+    void enterItemAdding();
+    void enterStudentsSelected();
+    void enterSubjectsSelected();
 
-    void handleSelectedSubjects(const QItemSelection &selected, const QItemSelection &deselected);
-    void handleSelectedStudents(const QItemSelection &selected, const QItemSelection &deselected);
+    void handleSelectedSubjects();
+    void handleSelectedStudents();
 
     void handleSubjectsDeletion();
     void handleStudentsDeletion();
+
+    void handleSelectedTeacher();
+    void handleChangedTab();
+    void handleClassDeleting();
 
     void initItemAddition();
     void completeItemAddition();
 
     void initClassCreation();
     void completeClassCreation();
-    void abortClassCreation();
 
     /// if not selected returns nullptr
     dbapi::Class* currentClass();
@@ -118,14 +115,14 @@ private:
     /// does not manages the connection
     bool deleteStudents();
 
-    void resetUi();
-
     private: signals:
-        void goInClassesLoaded();
-        void goInClassesNotLoaded();
-        void goInClassSelected();
-        void goInInSubjectsDeletion();
-        void goInInStudentsDeletion();
+        void reseted();
+        void dataError();
+        void classDeletedIs();
+        void classesLoadedAre();
+        void itemsDeselectedAre();
+        void studentsSelectedAre();
+        void subjectsSelectedAre();
 };
 
 
