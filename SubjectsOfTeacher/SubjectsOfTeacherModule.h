@@ -37,17 +37,12 @@ private:
     SubjectsModel* subjectsModel;
     SubjectsOfTeacherModel* model;
 
-    QPersistentModelIndex activePerson;
-    QItemSelection selectedSubjects;
-
     dbapi::Connection* connection = nullptr;
 
-    void handleFoundPerson(QModelIndex index);
+    void handleSelectedTeacher();
+    void handleSelectedSubjects();
 
-    void handleClickedSubject(const QModelIndex &index);
-    void handleSelectedSubjects(const QItemSelection &selected, const QItemSelection &deselected);
-
-    void deleteSubjects();
+    void handleSubjectsDeleting();
 
     void initSubjectAddition();
     void abortSubjectAddition();
@@ -61,6 +56,9 @@ private:
 
     bool tryConnect();
     void showInternalError();
+
+    /// if not selected returns nullptr
+    dbapi::Person* currentTeacher();
 };
 
 #endif // SUBJECTSOFTEACHERMODULE_H
