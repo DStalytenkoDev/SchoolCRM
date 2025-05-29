@@ -91,3 +91,12 @@ void SubjectsOfTeacherModel::removeRow(int row)
 
     endRemoveRows();
 }
+
+void SubjectsOfTeacherModel::clear()
+{
+    this->beginResetModel();
+
+    this->items.clear();
+
+    this->endResetModel();
+}

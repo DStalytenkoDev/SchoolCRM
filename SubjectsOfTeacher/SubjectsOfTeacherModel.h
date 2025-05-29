@@ -31,6 +31,7 @@ public:
 
     void insertRow(const dbapi::Subject& subject);
     void removeRow(int row);
+    void clear();
 
 private:
     dbapi::Connection* connection;
