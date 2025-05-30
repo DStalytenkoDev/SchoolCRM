@@ -79,7 +79,6 @@ private:
     void handleChangedTab();
     void handleClassDeleting();
 
-    void initItemAddition();
     void completeItemAddition();
 
     void initClassCreation();

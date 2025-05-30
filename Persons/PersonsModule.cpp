@@ -18,22 +18,18 @@ PersonsModule::PersonsModule(QWidget *parent)
     this->personDialog = new PersonCreationDialog(this);
     this->personDialog->hide(); // hide creation dialog
     this->personDialog->setRoles(this->rolesModel);
-
-    this->ui->deletePerson->hide(); // hide delete btn
+    connect(this->personDialog, &PersonCreationDialog::finished, this, &PersonsModule::completePersonCreation);
 
     // handle creation
     connect(this->ui->createPerson, &QPushButton::clicked, this, &PersonsModule::initPersonCreation);
-    connect(this->personDialog, &PersonCreationDialog::finished, this, &PersonsModule::completePersonCreation);
 
     // handle deletion of selection
-    connect(this->ui->deletePerson, &QPushButton::clicked, this, &PersonsModule::deleteSelectedPersons);
-
-    // handle load all
-    connect(this->ui->loadPersons, &QPushButton::clicked, this, &PersonsModule::loadPersons);
+    connect(this->ui->deletePerson, &QPushButton::clicked, this, &PersonsModule::handlePersonsDeletion);
 
     this->setupPersonsList();
     this->setupPersonFinder();
     this->setupPersonEditionWidget();
+    this->setupStateMachine();
 }
 
 void PersonsModule::setupPersonFinder()
@@ -55,28 +51,83 @@ void PersonsModule::setupPersonsList()
 {
     this->ui->personsList->setModel(this->model); // set model to main list
     this->ui->personsList->setSelectionBehavior(QAbstractItemView::SelectRows);
-    this->ui->personsList->setSelectionMode(QAbstractItemView::MultiSelection);
-
-    // handle click on person (edition)
-    connect(this->ui->personsList, &QListView::clicked, this, &PersonsModule::handleClickedPerson);
+    this->ui->personsList->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     // handle selection of persons
-    connect(this->ui->personsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &PersonsModule::handleSelectedPerson);
+    connect(this->ui->personsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &PersonsModule::handleSelectedItems);
 }
 
 void PersonsModule::setupPersonEditionWidget()
 {
     this->personWidget = new PersonEditionWidget(this);
-
-    this->personWidget->hide(); // hide person edit bar
-    this->ui->bottomlayout->addWidget(this->personWidget); // add person edit bar
-
     this->personWidget->setRoles(this->rolesModel); // set roles model to edit bar
 
-    // handle edition completing / aborting / deleting
+    this->ui->bottomlayout->addWidget(this->personWidget); // add person edit bar
+
+    // handle edition completing
     connect(this->personWidget, &PersonEditionWidget::saveButtonClicked, this, &PersonsModule::completePersonEdition);
-    connect(this->personWidget, &PersonEditionWidget::deleteButtonClicked, this, &PersonsModule::deleteClickedPerson);
-    connect(this->personWidget, &PersonEditionWidget::abortButtonClicked, this, &PersonsModule::abortPersonEdition);
+}
+
+void PersonsModule::setupStateMachine()
+{
+    this->stateMachine = new QStateMachine(this);
+
+    this->resetState = new QState();
+    this->personsNotLoaded = new QState(this->resetState);
+    this->personsLoaded = new QState(this->resetState);
+    this->itemSelected = new QState(this->resetState);
+    this->rangeSelected = new QState(this->resetState);
+    this->personEditing = new QState(this->resetState);
+
+    connect(this->personsNotLoaded, &QState::entered, this, &PersonsModule::enterPersonsNotLoaded);
+    this->personsNotLoaded->addTransition(this, &PersonsModule::personsLoadedAre, this->personsLoaded);
+
+    connect(this->personsLoaded, &QState::entered, this, &PersonsModule::enterPersonsLoaded);
+    this->personsLoaded->addTransition(this, &PersonsModule::itemSelectedIs, this->itemSelected);
+    this->personsLoaded->addTransition(this, &PersonsModule::rangeSelectedIs, this->rangeSelected);
+
+    connect(this->itemSelected, &QState::entered, this, &PersonsModule::enterItemSelected);
+    this->itemSelected->addTransition(this, &PersonsModule::rangeSelectedIs, this->rangeSelected);
+    this->itemSelected->addTransition(this->ui->editPerson, &QPushButton::clicked, this->personEditing);
+    this->itemSelected->addTransition(this, &PersonsModule::itemsDeselectedAre, this->personsLoaded);
+    this->itemSelected->addTransition(this->ui->deletePerson, &QPushButton::clicked, this->personsLoaded);
+
+    connect(this->personEditing, &QState::entered, this, &PersonsModule::enterPersonEditing);
+    this->personEditing->addTransition(this->personWidget, &PersonEditionWidget::saveButtonClicked, this->itemSelected);
+    this->personEditing->addTransition(this->personWidget, &PersonEditionWidget::abortButtonClicked, this->itemSelected);
+    this->personEditing->addTransition(this, &PersonsModule::dataError, this->itemSelected);
+
+    connect(this->rangeSelected, &QState::entered, this, &PersonsModule::enterRangeSelected);
+    this->rangeSelected->addTransition(this, &PersonsModule::itemSelectedIs, this->itemSelected);
+    this->rangeSelected->addTransition(this, &PersonsModule::itemsDeselectedAre, this->personsLoaded);
+    this->rangeSelected->addTransition(this->ui->deletePerson, &QPushButton::clicked, this->personsLoaded);
+
+    this->resetState->addTransition(this, &PersonsModule::reseted, this->personsNotLoaded);
+    this->resetState->setInitialState(this->personsNotLoaded);
+
+    this->stateMachine->addState(this->resetState);
+    this->stateMachine->setInitialState(this->resetState);
+}
+
+bool PersonsModule::tryConnect()
+{
+    if(this->connection->open())
+        return true;
+
+    this->showInternalError();
+
+    return false;
+}
+
+void PersonsModule::showInternalError()
+{
+    QMessageBox::critical(this, "Internal error", "Please check your connection to the database");
+}
+
+void PersonsModule::abortConnection()
+{
+    this->connection->close();
+    this->showInternalError();
 }
 
 void PersonsModule::setConnection(dbapi::Connection *connection)
@@ -87,9 +138,109 @@ void PersonsModule::setConnection(dbapi::Connection *connection)
     this->rolesModel->setConnection(connection);
 }
 
+void PersonsModule::prepare()
+{
+    if(not this->stateMachine->isRunning())
+        this->stateMachine->start();
+
+    emit this->reseted();
+}
+
 PersonsModule::~PersonsModule()
 {
     delete ui;
+}
+
+void PersonsModule::enterPersonsNotLoaded()
+{
+    this->personFinder->setCurrentIndex(-1);
+    this->personFinder->setDisabled(true);
+    this->ui->createPerson->setHidden(false);
+    this->ui->deletePerson->hide();
+    this->ui->editPerson->hide();
+    this->model->clear();
+    this->personWidget->hide();
+
+    if(not this->tryConnect())
+        return;
+
+    auto error = this->model->loadAll();
+    this->connection->close();
+
+    if(error.type != dbapi::ApiError::NoError)
+        return this->showInternalError();
+
+    emit this->personsLoadedAre();
+}
+
+void PersonsModule::enterPersonsLoaded()
+{
+    this->personFinder->setDisabled(false);
+    this->ui->createPerson->setHidden(false);
+    this->ui->deletePerson->hide();
+    this->ui->editPerson->hide();
+    this->ui->personsList->clearSelection();
+    this->ui->personsList->setDisabled(false);
+}
+
+void PersonsModule::enterItemSelected()
+{
+    this->ui->editPerson->setHidden(false);
+    this->ui->deletePerson->setHidden(false);
+    this->ui->createPerson->hide();
+    this->ui->personsList->setDisabled(false);
+    this->personWidget->hide();
+}
+
+void PersonsModule::enterRangeSelected()
+{
+    this->ui->deletePerson->setHidden(false);
+    this->ui->createPerson->hide();
+    this->ui->editPerson->hide();
+    this->ui->personsList->setDisabled(false);
+}
+
+void PersonsModule::enterPersonEditing()
+{
+    if(not this->tryConnect())
+    {
+        emit this->dataError();
+        return;
+    }
+
+    auto error = this->rolesModel->loadAll();
+    this->connection->close();
+
+    if(error.type != dbapi::ApiError::NoError)
+    {
+        emit this->dataError();
+        return;
+    }
+
+    auto person = this->model->person(this->ui->personsList->currentIndex());
+
+    this->personWidget->setFirstName(person->firstName());
+    this->personWidget->setSecondName(person->secondName());
+    this->personWidget->setDate(QDate::fromJulianDay(person->birthday()));
+
+    int foundRow = -1;
+
+    for(int row = 0; row < this->rolesModel->rowCount(); row++)
+        if(this->rolesModel->role(row)->key() == person->role())
+            foundRow = row;
+
+    if(foundRow < 0)
+    {
+        QMessageBox::critical(this, "Internal error", "Person edition could not be performed due to an error");
+        emit this->dataError();
+        return;
+    }
+
+    this->ui->personsList->setDisabled(true);
+    this->ui->editPerson->hide();
+    this->ui->deletePerson->hide();
+    this->personWidget->setRole(this->rolesModel->index(foundRow));
+    this->personWidget->show();
 }
 
 void PersonsModule::handleFoundPerson(QModelIndex index)
@@ -97,38 +248,30 @@ void PersonsModule::handleFoundPerson(QModelIndex index)
     this->ui->personsList->scrollTo(index);
 }
 
-void PersonsModule::handleClickedPerson(const QModelIndex &index)
+void PersonsModule::handleSelectedItems()
 {
-    this->selectedPersons.clear();
-    this->ui->deletePerson->hide();
+    auto& selection = this->ui->personsList->selectionModel()->selection();
 
-    this->clickedPerson = index;
-
-    this->initPersonEdition();
-}
-
-void PersonsModule::handleSelectedPerson(const QItemSelection &selected, const QItemSelection &deselected)
-{
-    this->selectedPersons = selected;
-
-    if(selected.empty())
-        this->ui->deletePerson->hide();
-    else
-        this->ui->deletePerson->setHidden(false);
-}
-
-void PersonsModule::deleteSelectedPersons()
-{
-    if(not this->connection->open())
+    if(selection.empty())
     {
-        QMessageBox::critical(this, "Internal error",
-                              QString("Deletion could not be performed due to: %1").arg(this->connection->error().text));
+        emit this->itemsDeselectedAre();
         return;
     }
 
+    if(selection.indexes().size() == 1)
+        emit this->itemSelectedIs();
+    else
+        emit this->rangeSelectedIs();
+}
+
+void PersonsModule::handlePersonsDeletion()
+{
+    if(not this->tryConnect())
+        return;
+
     bool errorFlag = false;
 
-    for(QModelIndex& index : this->selectedPersons.indexes())
+    for(QModelIndex& index : this->ui->personsList->selectionModel()->selectedIndexes())
     {
         if(not this->model->person(index)->remove()) // API calling for deletion
             errorFlag = true; // flag any request failed
@@ -140,7 +283,7 @@ void PersonsModule::deleteSelectedPersons()
     {
         QString msg("Deletion of these persons is failed:\n");
 
-        for(QModelIndex& index : this->selectedPersons.indexes())
+        for(QModelIndex& index : this->ui->personsList->selectionModel()->selectedIndexes())
         {
             auto person = this->model->person(index);
 
@@ -161,37 +304,16 @@ void PersonsModule::deleteSelectedPersons()
     this->connection->close();
 }
 
-void PersonsModule::deleteClickedPerson()
-{
-    if(not this->connection->open())
-    {
-        QMessageBox::critical(this, "Internal error",
-                              QString("Deletion could not be performed due to: %1").arg(this->connection->error().text));
-        return;
-    }
-
-    auto person = this->model->person(this->clickedPerson);
-
-    if(not person->remove()) // API calling for deletion
-    {
-        QMessageBox::warning(this, "Deletion",
-                             QString("The deletion is failed due to: %1").arg(person->error().text));
-
-        this->connection->close();
-        return;
-    }
-
-    this->ui->personsList->setRowHidden(this->clickedPerson.row(), true); // hide deleted person
-    this->abortPersonEdition();
-
-    this->connection->close();
-}
-
 void PersonsModule::initPersonCreation()
 {
-    // load down roles if they were not
-    if(not this->loadRolesIfNeed())
+    if(not this->tryConnect())
         return;
+
+    auto error = this->rolesModel->loadAll();
+    this->connection->close();
+
+    if(error.type != dbapi::ApiError::NoError)
+        return this->showInternalError();
 
     this->personDialog->clear();
     this->personDialog->show();
@@ -205,12 +327,8 @@ void PersonsModule::completePersonCreation(QDialog::DialogCode result)
         return;
     }
 
-    if(not this->connection->open())
-    {
-        QMessageBox::critical(this, "Internal error",
-                              QString("Creation could not be performed due to: %1").arg(this->connection->error().text));
+    if(not this->tryConnect())
         return;
-    }
 
     dbapi::Person person(this->connection);
 
@@ -219,16 +337,15 @@ void PersonsModule::completePersonCreation(QDialog::DialogCode result)
     person.setBirthday(this->personDialog->date().toJulianDay());
     person.setRole(this->rolesModel->role(this->personDialog->role())->key());
 
-    if(not person.store())
+    bool updated = person.store();
+    this->connection->close();
+
+    if(not updated)
     {
         QMessageBox::warning(this, "Creation",
                              QString("Creation of a new person failed due to: %1").arg(person.error().text));
-
-        this->connection->close();
         return;
     }
-
-    this->connection->close();
 
     this->model->insertRow(0, person);
     this->personDialog->hide();
@@ -236,114 +353,33 @@ void PersonsModule::completePersonCreation(QDialog::DialogCode result)
     QMessageBox::information(this, "Creation", "The person was created");
 }
 
-void PersonsModule::initPersonEdition()
-{
-    if(not this->loadRolesIfNeed())
-        return;
-
-    auto person = this->model->person(this->clickedPerson);
-
-    this->personWidget->setFirstName(person->firstName());
-    this->personWidget->setSecondName(person->secondName());
-    this->personWidget->setDate(QDate::fromJulianDay(person->birthday()));
-
-    int foundRow = -1;
-
-    for(int row = 0; row < this->rolesModel->rowCount(); row++)
-        if(this->rolesModel->role(row)->key() == person->role())
-            foundRow = row;
-
-    if(foundRow < 0)
-    {
-        QMessageBox::critical(this, "Internal error", "Person edition could not be performed due to an error");
-        return;
-    }
-
-    this->personWidget->setRole(this->rolesModel->index(foundRow));
-
-    this->personWidget->show();
-}
-
-void PersonsModule::abortPersonEdition()
-{
-    this->personWidget->hide();
-}
-
 void PersonsModule::completePersonEdition()
 {
-    if(not this->connection->open())
-    {
-        QMessageBox::critical(this, "Internal error",
-                              QString("Creation could not be performed due to: %1").arg(this->connection->error().text));
+    if(not this->tryConnect())
         return;
-    }
 
-    dbapi::Person person(*this->model->person(this->clickedPerson)); // copy data from the model
+    auto p_person = this->model->person(this->ui->personsList->currentIndex());
+    dbapi::Person person(*p_person); // copy data from the model
 
     person.setFirstName(this->personWidget->firstName());
     person.setSecondName(this->personWidget->secondName());
     person.setBirthday(this->personWidget->date().toJulianDay());
     person.setRole(this->rolesModel->role(this->personWidget->role())->key());
+    person.update();
 
-    if(not person.update())
+    this->connection->close();
+
+    if(person.error().type != dbapi::ApiError::NoError)
     {
         QMessageBox::warning(this, "Edition",
                              QString("Edition has failed due to: %1").arg(person.error().text));
 
-        this->abortPersonEdition();
-        this->connection->close();
         return;
     }
-
-    this->connection->close();
 
     QMessageBox::information(this, "Edition", "Edited successfully");
 
-    (*this->model->person(this->clickedPerson)) = person; // copy data back
+    (*p_person) = person; // copy data back
 
-    this->model->personNameEdited(this->clickedPerson); // tell model about change
-
-    this->personWidget->hide();
+    this->model->personNameEdited(this->ui->personsList->currentIndex()); // tell model about change
 }
-
-void PersonsModule::loadPersons()
-{
-    if(not this->connection->open())
-    {
-        QMessageBox::critical(this, "Internal error",
-                              QString("Loading could not be performed due to: %1").arg(this->connection->error().text));
-        return;
-    }
-
-    auto error = this->model->loadAll();
-
-    if(error.type != dbapi::ApiError::NoError)
-        QMessageBox::warning(this, "Loading", QString("Loading of all persons is failed due to: %1").arg(error.text));
-
-    this->connection->close();
-}
-
-bool PersonsModule::loadRolesIfNeed()
-{
-    if(this->rolesModel->rowCount() == 0)
-    {
-        if(not this->connection->open())
-        {
-            QMessageBox::critical(this, "Internal error",
-                              QString("Action could not be performed due to: %1").arg(this->connection->error().text));
-            return false;
-        }
-
-        auto error = this->rolesModel->loadAll();
-        this->connection->close();
-
-        if(error.type != dbapi::ApiError::NoError)
-        {
-            QMessageBox::critical(this, "Internal error", "You cannnot interact with any person due to roles downloading error");
-            return false;
-        }
-    }
-
-    return true;
-}
-

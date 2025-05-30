@@ -16,13 +16,13 @@ RolesModule::RolesModule(QWidget *parent)
     this->setupRolesList();
 
     // handle deleting
-    connect(this->ui->deleteRole, &QPushButton::clicked, this, &RolesModule::deleteRole);
+    connect(this->ui->deleteRole, &QPushButton::clicked, this, &RolesModule::handleRoleDeletion);
 
     // handle creation
     connect(this->ui->addRole, &QPushButton::clicked, this, &RolesModule::initRoleCreation);
 
     // handle load all
-    connect(this->ui->loadAllButton, &QPushButton::clicked, this, &RolesModule::loadRoles);
+    connect(this->ui->loadAllButton, &QPushButton::clicked, this, &RolesModule::handleRolesLoading);
 }
 
 void RolesModule::setupRoleFinder()
@@ -44,13 +44,10 @@ void RolesModule::setupRolesList()
 {
     this->ui->rolesList->setModel(this->model);
     this->ui->rolesList->setSelectionBehavior(QAbstractItemView::SelectRows);
-    this->ui->rolesList->setSelectionMode(QAbstractItemView::MultiSelection);
+    this->ui->rolesList->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     // handle selection
     connect(this->ui->rolesList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RolesModule::handleSelectedRoles);
-
-    // handle role clicking
-    connect(this->ui->rolesList, &QListView::clicked, this, &RolesModule::handleClickedRole);
 }
 
 void RolesModule::setConnection(dbapi::Connection *connection)
@@ -69,25 +66,17 @@ void RolesModule::handleFoundRole(QModelIndex index)
     this->ui->rolesList->scrollTo(index);
 }
 
-void RolesModule::handleSelectedRoles(const QItemSelection &selected, const QItemSelection &deselected)
+void RolesModule::handleSelectedRoles()
 {
-    this->selectedRoles = selected;
+    auto& selection = this->ui->rolesList->selectionModel()->selection();
 
-    if(selected.empty())
+    if(selection.empty())
         this->ui->deleteRole->hide();
     else
-        this->ui->deleteRole->setHidden(false);
+        this->ui->deleteRole->show();
 }
 
-void RolesModule::handleClickedRole(const QModelIndex &index)
-{
-    this->selectedRoles.clear();
-    this->selectedRoles.select(index, index);
-
-    this->ui->deleteRole->setHidden(false);
-}
-
-void RolesModule::deleteRole()
+void RolesModule::handleRoleDeletion()
 {
     if(not this->connection->open())
     {
@@ -98,7 +87,7 @@ void RolesModule::deleteRole()
 
     bool errorFlag = false;
 
-    for(QModelIndex& index : this->selectedRoles.indexes())
+    for(QModelIndex& index : this->ui->rolesList->selectionModel()->selectedIndexes())
     {
         if(not this->model->role(index)->remove()) // API calling for deletion
             errorFlag = true; // flag any request failed
@@ -110,7 +99,7 @@ void RolesModule::deleteRole()
     {
         QString msg("Deletion of these roles is failed:\n");
 
-        for(QModelIndex& index : this->selectedRoles.indexes())
+        for(QModelIndex& index : this->ui->rolesList->selectionModel()->selectedIndexes())
         {
             auto role = this->model->role(index);
 
@@ -171,7 +160,7 @@ void RolesModule::completeRoleCreation()
     QMessageBox::information(this, "Creation", QString("The creation of the new role: %1 is succeed").arg(role.name()));
 }
 
-void RolesModule::loadRoles()
+void RolesModule::handleRolesLoading()
 {
     if(not this->connection->open())
     {
@@ -180,6 +169,7 @@ void RolesModule::loadRoles()
         return;
     }
 
+    this->model->clear();
     auto error = this->model->loadAll();
 
     if(error.type != dbapi::ApiError::NoError)

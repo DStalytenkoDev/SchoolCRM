@@ -27,6 +27,8 @@ public:
 
     bool insertRow(int rowBefore, const dbapi::Role& role, const QModelIndex &parent = QModelIndex());
 
+    void clear();
+
     ~RolesModel();
 
 private:

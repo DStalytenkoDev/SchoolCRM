@@ -31,20 +31,18 @@ private:
     ComboBoxFinderView* subjectFinder = nullptr;
 
     SubjectsModel* model = nullptr;
-    QItemSelection selectedSubjects;
 
     dbapi::Connection* connection = nullptr;
 
     void handleFoundSubject(QModelIndex index);
-    void handleClickedSubject(const QModelIndex &index);
-    void handleSelectedSubjects(const QItemSelection &selected, const QItemSelection &deselected);
+    void handleSelectedSubjects();
 
-    void deleteSubject();
+    void handleSubjectsDeletion();
 
     void initSubjectCreation();
     void completeSubjectCreation();
 
-    void loadSubjects();
+    void handleSubjectsLoading();
 
     void setupSubjectFinder();
     void setupSubjectList();

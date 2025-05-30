@@ -390,7 +390,7 @@ bool JournalModule::loadCompatibleTeachers()
     {
         dbapi::Subject::Key key(this->classSubjectsModel->subject(this->subjectFinder->currentIndex()));
 
-        // personsModel must be cleared
+        this->personsModel->clear();
 
         if(list->subjects().contains(key))
         {
@@ -405,21 +405,3 @@ bool JournalModule::loadCompatibleTeachers()
 
     return true;
 }
-
-//void JournalModule::resetUi()
-//{
-//    this->classFinder->hide();
-//    this->subjectFinder->hide();
-//    this->markTypeFinder->hide();
-//
-//    this->ui->beginDate->hide();
-//    this->ui->endDate->hide();
-//
-//    this->ui->createMark->hide();
-//    this->ui->deleteMark->hide();
-//    this->ui->abortSelection->hide();
-//
-//    this->ui->journal->hide();
-//
-//    this->layout()->addItem(this->journalSpacer);
-//}

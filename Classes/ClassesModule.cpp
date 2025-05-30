@@ -160,6 +160,7 @@ void ClassesModule::enterItemAdding()
         return this->showInternalError();
     }
 
+    this->classDeletionAction->setDisabled(true);
     this->ui->itemAdditionMenu->setHidden(false);
     this->ui->addItem->hide();
 }
@@ -445,6 +446,7 @@ void ClassesModule::initClassCreation()
     connect(this->classCreationDialog, &QDialog::finished, this, &ClassesModule::completeClassCreation);
 
     this->classCreationDialog->show();
+    this->teacherFinder->hide();
 }
 
 void ClassesModule::completeClassCreation()
@@ -481,6 +483,7 @@ void ClassesModule::completeClassCreation()
     }
 
     this->connection->close();
+    emit this->reseted();
 }
 
 dbapi::Class *ClassesModule::currentClass()
@@ -558,6 +561,9 @@ void ClassesModule::setupToolBar()
 
     // handle class deletion
     connect(this->classDeletionAction, &QAction::triggered, this, &ClassesModule::handleClassDeleting);
+
+    // handle item adding
+    connect(this->ui->confirmItemAddition, &QPushButton::clicked, this, &ClassesModule::completeItemAddition);
 }
 
 void ClassesModule::setupStateMachine()
@@ -585,6 +591,12 @@ void ClassesModule::setupStateMachine()
     this->classSelected->addTransition(this, &ClassesModule::classDeletedIs, this->classesNotLoaded);
     this->classSelected->addTransition(this, &ClassesModule::dataError, this->classesNotLoaded);
     this->classSelected->addTransition(this->classFinder, &ComboBoxFinderView::foundItem, this->classSelected);
+
+    connect(this->itemAdding, &QState::entered, this, &ClassesModule::enterItemAdding);
+    this->itemAdding->addTransition(this->ui->confirmItemAddition, &QPushButton::clicked, this->classSelected);
+    this->itemAdding->addTransition(this->ui->abortItemAddition, &QPushButton::clicked, this->classSelected);
+    this->itemAdding->addTransition(this->classFinder, &ComboBoxFinderView::foundItem, this->classSelected);
+    this->itemAdding->addTransition(this, &ClassesModule::dataError, this->classSelected);
 
     connect(this->studentsSelected, &QState::entered, this, &ClassesModule::enterStudentsSelected);
     this->studentsSelected->addTransition(this, &ClassesModule::itemsDeselectedAre, this->classSelected);

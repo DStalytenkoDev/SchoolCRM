@@ -92,6 +92,11 @@ bool PersonsModel::insertRow(int rowBefore, const dbapi::Person &person, const Q
     return false;
 }
 
+void PersonsModel::clear()
+{
+    this->cleanPersons();
+}
+
 PersonsModel::~PersonsModel()
 {
     for(auto person : this->persons)

@@ -15,12 +15,10 @@ public:
 
 signals:
     void saveButtonClicked();
-    void deleteButtonClicked();
     void abortButtonClicked();
 
 private:
     QPushButton* saveBtn;
-    QPushButton* deleteBtn;
     QPushButton* abortButton;
 };
 
