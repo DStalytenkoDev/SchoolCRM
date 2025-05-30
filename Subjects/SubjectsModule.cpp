@@ -18,13 +18,13 @@ SubjectsModule::SubjectsModule(QWidget *parent)
     this->setupSubjectList();
 
     // handle deleting
-    connect(this->ui->deleteSubject, &QPushButton::clicked, this, &SubjectsModule::deleteSubject);
+    connect(this->ui->deleteSubject, &QPushButton::clicked, this, &SubjectsModule::handleSubjectsDeletion);
 
     // handle creation
     connect(this->ui->createSubject, &QPushButton::clicked, this, &SubjectsModule::initSubjectCreation);
 
     // handle load all
-    connect(this->ui->loadAllButton, &QPushButton::clicked, this, &SubjectsModule::loadSubjects);
+    connect(this->ui->loadAllButton, &QPushButton::clicked, this, &SubjectsModule::handleSubjectsLoading);
 }
 
 void SubjectsModule::setConnection(dbapi::Connection *connection)
@@ -43,25 +43,17 @@ void SubjectsModule::handleFoundSubject(QModelIndex index)
     this->ui->subjectsList->scrollTo(index);
 }
 
-void SubjectsModule::handleClickedSubject(const QModelIndex &index)
+void SubjectsModule::handleSelectedSubjects()
 {
-    this->selectedSubjects.clear();
-    this->selectedSubjects.select(index, index);
+    auto& selection = this->ui->subjectsList->selectionModel()->selection();
 
-    this->ui->deleteSubject->setHidden(false);
-}
-
-void SubjectsModule::handleSelectedSubjects(const QItemSelection &selected, const QItemSelection &deselected)
-{
-    this->selectedSubjects = selected;
-
-    if(selected.empty())
+    if(selection.empty())
         this->ui->deleteSubject->hide();
     else
-        this->ui->deleteSubject->setHidden(false);
+        this->ui->deleteSubject->show();
 }
 
-void SubjectsModule::deleteSubject()
+void SubjectsModule::handleSubjectsDeletion()
 {
     if(not this->connection->open())
     {
@@ -72,7 +64,7 @@ void SubjectsModule::deleteSubject()
 
     bool errorFlag = false;
 
-    for(QModelIndex& index : this->selectedSubjects.indexes())
+    for(QModelIndex& index : this->ui->subjectsList->selectionModel()->selectedIndexes())
     {
         if(not this->model->subject(index)->remove()) // API calling for deletion
             errorFlag = true; // flag any request failed
@@ -86,7 +78,7 @@ void SubjectsModule::deleteSubject()
     {
         QString msg("Deletion of these subjects is failed:\n");
 
-        for(QModelIndex& index : this->selectedSubjects.indexes())
+        for(QModelIndex& index : this->ui->subjectsList->selectionModel()->selectedIndexes())
         {
             auto subject = this->model->subject(index);
 
@@ -101,6 +93,8 @@ void SubjectsModule::deleteSubject()
     }
     else
         QMessageBox::information(this, "Deletion", "All selected subjects had been deleted"); // report a success
+
+    this->ui->subjectsList->clearSelection();
 }
 
 void SubjectsModule::initSubjectCreation()
@@ -145,7 +139,7 @@ void SubjectsModule::completeSubjectCreation()
     QMessageBox::information(this, "Creation", QString("The creation of the new subject: %1 is succeed").arg(subject.name()));
 }
 
-void SubjectsModule::loadSubjects()
+void SubjectsModule::handleSubjectsLoading()
 {
     if(not this->connection->open())
     {
@@ -185,7 +179,4 @@ void SubjectsModule::setupSubjectList()
 
     // handle selection
     connect(this->ui->subjectsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &SubjectsModule::handleSelectedSubjects);
-
-    // handle subject clicking
-    connect(this->ui->subjectsList, &QListView::clicked, this, &SubjectsModule::handleClickedSubject);
 }

@@ -80,6 +80,11 @@ bool RolesModel::insertRow(int rowBefore, const dbapi::Role &role, const QModelI
     return false;
 }
 
+void RolesModel::clear()
+{
+    this->cleanRoles();
+}
+
 RolesModel::~RolesModel()
 {
     for(auto role : this->roles)

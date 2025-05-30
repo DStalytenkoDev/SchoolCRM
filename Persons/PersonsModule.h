@@ -4,6 +4,7 @@
 
 #include <QWidget>
 #include <QItemSelection>
+#include <QStateMachine>
 #include "PersonCreationDialog.h"
 #include "PersonEdtitionWidget.h"
 #include "PersonsModel.h"
@@ -24,6 +25,7 @@ public:
     PersonsModule(QWidget *parent = nullptr);
 
     void setConnection(dbapi::Connection* connection);
+    void prepare();
 
     ~PersonsModule();
 
@@ -37,31 +39,51 @@ private:
     PersonsModel* model = nullptr;
     RolesModel* rolesModel = nullptr;
 
-    QItemSelection selectedPersons;
-    QPersistentModelIndex clickedPerson;
+    QStateMachine* stateMachine;
+    QState* resetState;
+    QState* personsNotLoaded;
+    QState* personsLoaded;
+    QState* itemSelected;
+    QState* rangeSelected;
+    QState* personEditing;
 
     dbapi::Connection* connection = nullptr;
 
-    void handleFoundPerson(QModelIndex index);
-    void handleClickedPerson(const QModelIndex &index);
-    void handleSelectedPerson(const QItemSelection &selected, const QItemSelection &deselected);
+    void enterPersonsNotLoaded();
+    void enterPersonsLoaded();
+    void enterItemSelected();
+    void enterRangeSelected();
+    void enterPersonEditing();
 
-    void deleteSelectedPersons();
-    void deleteClickedPerson();
+    void handleFoundPerson(QModelIndex index);
+    void handleSelectedItems();
+
+    void handlePersonsDeletion();
 
     void initPersonCreation();
     void completePersonCreation(QDialog::DialogCode result);
 
-    void initPersonEdition();
-    void abortPersonEdition();
     void completePersonEdition();
-
-    void loadPersons();
-    bool loadRolesIfNeed();
 
     void setupPersonFinder();
     void setupPersonsList();
     void setupPersonEditionWidget();
+    void setupStateMachine();
+
+    /// trys to open the connection, otherwise shows error
+    bool tryConnect();
+    /// shows generall error
+    void showInternalError();
+    /// closes connection and shows generall error
+    void abortConnection();
+
+private: signals:
+    void reseted();
+    void itemSelectedIs();
+    void rangeSelectedIs();
+    void personsLoadedAre();
+    void dataError();
+    void itemsDeselectedAre();
 };
 
 

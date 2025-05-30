@@ -30,6 +30,8 @@ public:
 
     bool insertRow(int rowBefore, const dbapi::Person& person, const QModelIndex &parent = QModelIndex());
 
+    void clear();
+
     ~PersonsModel();
 
 private:

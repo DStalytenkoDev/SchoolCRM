@@ -34,20 +34,18 @@ private:
     ComboBoxFinderView* roleFinder = nullptr;
 
     RolesModel* model = nullptr;
-    QItemSelection selectedRoles;
 
     dbapi::Connection* connection = nullptr;
 
     void handleFoundRole(QModelIndex index);
-    void handleClickedRole(const QModelIndex &index);
-    void handleSelectedRoles(const QItemSelection &selected, const QItemSelection &deselected);
+    void handleSelectedRoles();
 
-    void deleteRole();
+    void handleRoleDeletion();
 
     void initRoleCreation();
     void completeRoleCreation();
 
-    void loadRoles();
+    void handleRolesLoading();
 
     void setupRoleFinder();
     void setupRolesList();
