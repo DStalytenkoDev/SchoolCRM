@@ -1,7 +1,7 @@
 #ifndef SUBJECTSOFTEACHERMODEL_H
 #define SUBJECTSOFTEACHERMODEL_H
 
-#include <SchoolDatabaseApi/TeacherSubjectsList/TeacherSubjectsList.h>
+#include <SchoolApi/TeacherSubjectsList.h>
 #include <QAbstractListModel>
 
 class SubjectsOfTeacherModel : public QAbstractListModel

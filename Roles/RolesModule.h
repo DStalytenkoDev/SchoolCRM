@@ -5,7 +5,7 @@
 #include <QWidget>
 #include <QItemSelection>
 
-#include <SchoolDatabaseApi/Role/Role.h>
+#include <SchoolApi/Role.h>
 
 #include "RolesModel.h"
 #include "RoleCreationDialog.h"

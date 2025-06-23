@@ -23,23 +23,19 @@ Main widgets called modules. They just swicth each other 'cause user interaction
 - Qt Framework
 
 ### Build guide
-1. Download repo
-2. Download and build API's repo
-2. Do auto confiuration with Qt Creator and GCC or MSVC compiler
-3. In the project configuration setup environment varibales of API proj such as:
-    - SCHOOLDATABASEAPILIBPATH for the binaries
-    - SCHOOLDATABASEAPIHEADERSPATH for the headers
+1. Clone repo
+2. Open **SchoolCRM/CMakeLists.txt** by Qt creator
+3. Do auto confiuration with Qt Creator and GCC or MSVC compiler
 4. build
-
-Note that binary variable includes the name of the bin file  
-and the other one includes only root directory of API repo
-
-**Should re-run cmake configuration after setting up variables.**
 
 ---
 
 **Or just use some already compiled stuff for the release if it exists))**
 
 ## Releases
+### v1.1.1
+uses v2.0.0 of the API  
+patched bugs  
+changed configure and build method
 ### v1.0.0
 uses v1.0.0 of the API

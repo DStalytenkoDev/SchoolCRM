@@ -2,7 +2,7 @@
 #define MARKTYPESELECTOR_H
 
 #include <QComboBox>
-#include <SchoolDatabaseApi/StudentMark/StudentMark.h>
+#include <SchoolApi/StudentMark.h>
 
 class MarkTypeSelector : public QComboBox
 {

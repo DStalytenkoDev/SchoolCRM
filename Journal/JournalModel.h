@@ -3,8 +3,8 @@
 
 
 #include <QAbstractTableModel>
-#include <SchoolDatabaseApi/StudentMark/StudentMark.h>
-#include <SchoolDatabaseApi/Student/Student.h>
+#include <SchoolApi/StudentMark.h>
+#include <SchoolApi/Student.h>
 #include <QItemSelection>
 
 

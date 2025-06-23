@@ -1,5 +1,5 @@
 #include <QMessageBox>
-#include <SchoolDatabaseApi/TeacherSubjectsList/TeacherSubjectsList.h>
+#include <SchoolApi/TeacherSubjectsList.h>
 #include <qlabel.h>
 #include <qsignaltransition.h>
 

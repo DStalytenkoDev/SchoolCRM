@@ -2,7 +2,7 @@
 #define SUBJECTSMODEL_H
 
 
-#include <SchoolDatabaseApi/Connection/Connection.h>
+#include <SchoolApi/Connection.h>
 #include <QAbstractListModel>
 
 
