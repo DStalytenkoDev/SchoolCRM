@@ -3,7 +3,7 @@
 
 
 #include <QAbstractListModel>
-#include <SchoolDatabaseApi/Role/Role.h>
+#include <SchoolApi/Role.h>
 
 
 /// the class provides loading down the names of the roles, but not any changes in an actual API

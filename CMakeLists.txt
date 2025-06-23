@@ -9,8 +9,10 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql StateMachine)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql StateMachine)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets StateMachine)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets StateMachine)
+
+add_subdirectory(./SchoolDatabaseApi)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -79,17 +81,7 @@ else()
     endif()
 endif()
 
-if(NOT DEFINED ENV{SchoolDatabaseApiLibPath})
-    message(FATAL_ERROR "you have to set a [SchoolDatabaseApiLibPath] variable in project settings to specify the path to compiled library")
-endif()
-
-target_link_libraries(SchoolCRM PRIVATE Qt${QT_VERSION_MAJOR}::Widgets $ENV{SchoolDatabaseApiLibPath} Qt${QT_VERSION_MAJOR}::Sql Qt${QT_VERSION_MAJOR}::StateMachine)
-
-if(NOT DEFINED ENV{SchoolDatabaseApiHeadersPath})
-    message(FATAL_ERROR "you have to set a [SchoolDatabaseApiHeadersPath] variable in project settings to specify the path to headers of the library")
-else()
-    target_include_directories(SchoolCRM PRIVATE $ENV{SchoolDatabaseApiHeadersPath})
-endif()
+target_link_libraries(SchoolCRM PRIVATE Qt${QT_VERSION_MAJOR}::Widgets $ENV{SchoolDatabaseApiLibPath} Qt${QT_VERSION_MAJOR}::StateMachine SchoolDatabaseApi)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

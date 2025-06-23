@@ -3,7 +3,7 @@
 
 
 #include <QAbstractTableModel>
-#include <SchoolDatabaseApi/Person/Person.h>
+#include <SchoolApi/Person.h>
 
 
 /// provides person's name as a solid string

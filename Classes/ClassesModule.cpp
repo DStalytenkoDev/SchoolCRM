@@ -1,7 +1,7 @@
 #include <QMessageBox>
 #include <qmenu.h>
 #include <QSignalTransition>
-#include <SchoolDatabaseApi/Classmate/Classmate.h>
+#include <SchoolApi/Classmate.h>
 #include "ClassesModule.h"
 #include "ui_ClassesModule.h"
 #include "../TransitionFactrory.h"
@@ -601,12 +601,12 @@ void ClassesModule::setupStateMachine()
     connect(this->studentsSelected, &QState::entered, this, &ClassesModule::enterStudentsSelected);
     this->studentsSelected->addTransition(this, &ClassesModule::itemsDeselectedAre, this->classSelected);
     this->studentsSelected->addTransition(this->classFinder, &ComboBoxFinderView::foundItem, this->classSelected);
-    transition(this->ui->deleteItem, &QPushButton::clicked, this, &ClassesModule::handleSelectedStudents, this->studentsSelected, this->classSelected);
+    transition(this->ui->deleteItem, &QPushButton::clicked, this, &ClassesModule::handleStudentsDeletion, this->studentsSelected, this->classSelected);
 
     connect(this->subjectsSelected, &QState::entered, this, &ClassesModule::enterSubjectsSelected);
     this->subjectsSelected->addTransition(this, &ClassesModule::itemsDeselectedAre, this->classSelected);
     this->subjectsSelected->addTransition(this->classFinder, &ComboBoxFinderView::foundItem, this->classSelected);
-    transition(this->ui->deleteItem, &QPushButton::clicked, this, &ClassesModule::handleSelectedSubjects, this->subjectsSelected, this->classSelected);
+    transition(this->ui->deleteItem, &QPushButton::clicked, this, &ClassesModule::handleSubjectsDeletion, this->subjectsSelected, this->classSelected);
 
     this->resetGroupState->setInitialState(this->classesNotLoaded);
     this->resetGroupState->addTransition(this, &ClassesModule::reseted, this->classesNotLoaded);

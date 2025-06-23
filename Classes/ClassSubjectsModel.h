@@ -3,7 +3,7 @@
 
 
 #include <QAbstractListModel>
-#include <SchoolDatabaseApi/ClassSubjectsList/ClassSubjectsList.h>
+#include <SchoolApi/ClassSubjectsList.h>
 
 
 class ClassSubjectsModel : public QAbstractListModel

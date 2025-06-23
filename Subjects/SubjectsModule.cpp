@@ -1,4 +1,4 @@
-#include <SchoolDatabaseApi/Subject/Subject.h>
+#include <SchoolApi/Subject.h>
 #include <QMessageBox>
 #include "SubjectsModule.h"
 #include "ui_SubjectsModule.h"

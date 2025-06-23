@@ -2,7 +2,7 @@
 #define CLASSSTUDENTSMODEL_H
 
 
-#include <SchoolDatabaseApi/Student/Student.h>
+#include <SchoolApi/Student.h>
 #include <QAbstractListModel>
 
 
