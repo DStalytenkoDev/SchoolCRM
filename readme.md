@@ -33,6 +33,9 @@ Main widgets called modules. They just swicth each other 'cause user interaction
 **Or just use some already compiled stuff for the release if it exists))**
 
 ## Releases
+### v1.1.2
+uses v2.0.0 of the API  
+patched bugs
 ### v1.1.1
 uses v2.0.0 of the API  
 patched bugs  
