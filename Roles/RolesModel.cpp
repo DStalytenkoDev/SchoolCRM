@@ -9,11 +9,12 @@ void RolesModel::setConnection(dbapi::Connection *connection)
     this->connection = connection;
 }
 
-dbapi::ApiError RolesModel::loadAll()
+UserError RolesModel::loadAll()
 {
     dbapi::ApiError error;
 
-    this->cleanRoles();
+    this->beginResetModel();
+    this->clear();
 
     this->roles = dbapi::Role::loadAll(this->connection, &error);
 
@@ -26,13 +27,29 @@ dbapi::ApiError RolesModel::loadAll()
     return {};
 }
 
+UserError RolesModel::removeRoles(int start, int end)
+{
+
+}
+
+UserError RolesModel::createRole(const QString &name)
+{
+
+}
+
 dbapi::Role *RolesModel::role(int row)
 {
+    if(row >= this->roles.count())
+        return nullptr;
+
     return this->roles[row];
 }
 
 dbapi::Role* RolesModel::role(const QModelIndex &index)
 {
+    if(index.row() >= this->roles.count())
+        return nullptr;
+
     return this->roles[index.row()];
 }
 
@@ -55,55 +72,23 @@ QVariant RolesModel::data(const QModelIndex &index, int role) const
     return this->roles[index.row()]->name();
 }
 
-bool RolesModel::insertRow(int rowBefore, const dbapi::Role &role, const QModelIndex &parent)
-{
-    auto len = this->roles.size();
-
-    if(len == 0)
-    {
-        beginInsertRows({}, rowBefore, rowBefore);
-        this->roles.append(new dbapi::Role(role));
-        endInsertRows();
-
-        return true;
-    }
-
-    if(rowBefore >= 0 and rowBefore <= len)
-    {
-        beginInsertRows({}, rowBefore, rowBefore);
-        this->roles.insert(rowBefore, new dbapi::Role(role));
-        endInsertRows();
-
-        return true;
-    }
-
-    return false;
-}
-
 void RolesModel::clear()
 {
-    this->cleanRoles();
-}
-
-RolesModel::~RolesModel()
-{
-    for(auto role : this->roles)
-        delete role;
-}
-
-void RolesModel::cleanRoles()
-{
-    auto len = this->roles.size();
-
-    if(len == 0)
+    if(this->roles.size() == 0)
         return;
 
-    beginRemoveRows(QModelIndex(), 0, len - 1);
+    this->beginResetModel();
 
     for(auto role : this->roles)
         delete role;
 
     this->roles.clear();
 
-    endRemoveRows();
+    this->endResetModel();
+}
+
+RolesModel::~RolesModel()
+{
+    for(auto role : this->roles)
+        delete role;
 }
