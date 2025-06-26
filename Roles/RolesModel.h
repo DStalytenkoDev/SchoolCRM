@@ -4,6 +4,7 @@
 
 #include <QAbstractListModel>
 #include <SchoolApi/Role.h>
+#include "UserError.h"
 
 
 /// the class provides loading down the names of the roles, but not any changes in an actual API
@@ -14,8 +15,9 @@ public:
 
     void setConnection(dbapi::Connection* connection);
 
-    /// req: called setConnection() with a valid arg
-    dbapi::ApiError loadAll();
+    UserError loadAll();
+    UserError removeRoles(int start, int end);
+    UserError createRole(const QString& name);
 
     /// in case of any not valid index undefined behaviour
     dbapi::Role* role(const QModelIndex& index);
@@ -25,8 +27,6 @@ public:
     virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
-    bool insertRow(int rowBefore, const dbapi::Role& role, const QModelIndex &parent = QModelIndex());
-
     void clear();
 
     ~RolesModel();
@@ -34,8 +34,6 @@ public:
 private:
     dbapi::Connection* connection = nullptr;
     QList<dbapi::Role*> roles;
-
-    void cleanRoles();
 };
 
 
