@@ -31,6 +31,14 @@ public:
     void show(QWidget* parent) const;
     QMessageBox* formMessage(QWidget* parent) const;
 
+    static UserError actionErrorTemplate(const QString& errorType, const QString& actionObject, const QString& failedAction, const QString& description = {});
+
+    static UserError referenceError(const QString& actionObject, const QString& failedAction, const QString& description = {});
+    static UserError keyError(const QString& actionObject, const QString& failedAction, const QString& description = {});
+    static UserError connectionError(const QString& actionObject, const QString& failedAction, const QString& description = {});
+    static UserError validityError(const QString& actionObject, const QString& failedAction, const QString& description = {});
+    static UserError internalError(const QString& actionObject, const QString& failedAction, const QString& description = {});
+
 private:
     Type _type = None;
 

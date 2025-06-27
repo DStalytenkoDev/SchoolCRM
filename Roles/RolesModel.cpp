@@ -1,3 +1,4 @@
+#include <cassert>
 #include "RolesModel.h"
 
 RolesModel::RolesModel(QObject *parent)
@@ -6,6 +7,8 @@ RolesModel::RolesModel(QObject *parent)
 
 void RolesModel::setConnection(dbapi::Connection *connection)
 {
+    assert((void("nullptr"), connection != nullptr));
+
     this->connection = connection;
 }
 
@@ -18,37 +21,87 @@ UserError RolesModel::loadAll()
 
     this->roles = dbapi::Role::loadAll(this->connection, &error);
 
-    if(error.type != dbapi::ApiError::NoError)
-        return error;
+    this->endResetModel();
 
-    this->beginInsertRows({}, 0, this->roles.size() - 1);
+    if(error.type != dbapi::ApiError::NoError)
+        return UserError::internalError("Roles", "be loaded 'cause an unknown error", "Try again or contact support");
+
+    return {};
+}
+
+UserError RolesModel::removeRole(int index)
+{
+    bool indexInRange = index > 0 && index < this->roles.size();
+
+    assert((void("out of range"), indexInRange));
+
+    if(not indexInRange)
+        return UserError::internalError("Roles", "be removed 'cause an unknown error", "Try again or contact support");
+
+    auto role = this->roles[index];
+
+    if(not role->remove())
+    {
+        UserError userError;
+
+        if(role->error().type == dbapi::ApiError::PolicyError)
+            return UserError::referenceError("Role", "be removed 'cause its related", "Try first removing objects are using certain role");
+        else
+            return UserError::internalError("Role", "be removed 'cause an unknown error", "Try again or contact support");
+    }
+
+    this->beginRemoveRows({}, index, index);
+
+    delete role;
+    this->roles.removeAt(index);
+
+    this->endRemoveRows();
+
+    return {};
+}
+
+UserError RolesModel::createRole(const QString &name)
+{
+    auto error = this->loadAll();
+
+    if(error.isError())
+        return UserError::internalError("Role", "be created 'cause an unknown error", "Try again or contact support");
+
+    QString trimmedName = name.trimmed();
+
+    if(trimmedName.isEmpty())
+        return UserError::validityError("Role", "be created 'cause its empty");
+
+    for(auto role : this->roles)
+        if(role->name() == trimmedName)
+            return UserError::validityError("Role", "be created 'cause it already exists");
+
+    auto role = new dbapi::Role(this->connection);
+    role->setName(trimmedName);
+
+    if(not role->store())
+    {
+        delete role;
+        return UserError::internalError("Role", "be created 'cause an unknown error", "Try again or contact support");
+    }
+
+    this->beginInsertRows({}, this->roles.size(), this->roles.size());
+    this->roles.append(role);
     this->endInsertRows();
 
     return {};
 }
 
-UserError RolesModel::removeRoles(int start, int end)
-{
-
-}
-
-UserError RolesModel::createRole(const QString &name)
-{
-
-}
-
 dbapi::Role *RolesModel::role(int row)
 {
-    if(row >= this->roles.count())
-        return nullptr;
+    assert((void("out of range"), row >= this->roles.count()));
 
     return this->roles[row];
 }
 
 dbapi::Role* RolesModel::role(const QModelIndex &index)
 {
-    if(index.row() >= this->roles.count())
-        return nullptr;
+    assert((void("out of range"), index.row() >= this->roles.count()));
 
     return this->roles[index.row()];
 }

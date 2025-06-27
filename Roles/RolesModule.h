@@ -38,7 +38,7 @@ private:
     dbapi::Connection* connection = nullptr;
 
     void handleFoundRole(QModelIndex index);
-    void handleSelectedRoles();
+    void handleSelectedRole();
 
     void handleRoleDeletion();
 
@@ -49,6 +49,8 @@ private:
 
     void setupRoleFinder();
     void setupRolesList();
+
+    bool tryConnect();
 };
 
 

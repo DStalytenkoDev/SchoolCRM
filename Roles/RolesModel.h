@@ -16,7 +16,7 @@ public:
     void setConnection(dbapi::Connection* connection);
 
     UserError loadAll();
-    UserError removeRoles(int start, int end);
+    UserError removeRole(int index);
     UserError createRole(const QString& name);
 
     /// in case of any not valid index undefined behaviour

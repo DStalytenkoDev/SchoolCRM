@@ -44,7 +44,6 @@ private:
     QState* personsNotLoaded;
     QState* personsLoaded;
     QState* itemSelected;
-    QState* rangeSelected;
     QState* personEditing;
 
     dbapi::Connection* connection = nullptr;
@@ -52,13 +51,12 @@ private:
     void enterPersonsNotLoaded();
     void enterPersonsLoaded();
     void enterItemSelected();
-    void enterRangeSelected();
     void enterPersonEditing();
 
     void handleFoundPerson(QModelIndex index);
-    void handleSelectedItems();
+    void handleSelectedItem();
 
-    void handlePersonsDeletion();
+    void handlePersonDeletion();
 
     void initPersonCreation();
     void completePersonCreation(QDialog::DialogCode result);
@@ -72,18 +70,13 @@ private:
 
     /// trys to open the connection, otherwise shows error
     bool tryConnect();
-    /// shows generall error
-    void showInternalError();
-    /// closes connection and shows generall error
-    void abortConnection();
 
 private: signals:
     void reseted();
     void itemSelectedIs();
-    void rangeSelectedIs();
     void personsLoadedAre();
     void dataError();
-    void itemsDeselectedAre();
+    void itemDeselectedIs();
 };
 
 

@@ -47,7 +47,16 @@ void RolesModule::setupRolesList()
     this->ui->rolesList->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     // handle selection
-    connect(this->ui->rolesList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RolesModule::handleSelectedRoles);
+    connect(this->ui->rolesList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RolesModule::handleSelectedRole);
+}
+
+bool RolesModule::tryConnect()
+{
+    if(this->connection->open())
+        return true;
+
+    UserError::connectionError("Command", "be executed 'cause connection to the server failed").show(this);
+    return false;
 }
 
 void RolesModule::setConnection(dbapi::Connection *connection)
@@ -66,7 +75,7 @@ void RolesModule::handleFoundRole(QModelIndex index)
     this->ui->rolesList->scrollTo(index);
 }
 
-void RolesModule::handleSelectedRoles()
+void RolesModule::handleSelectedRole()
 {
     auto& selection = this->ui->rolesList->selectionModel()->selection();
 
@@ -78,42 +87,17 @@ void RolesModule::handleSelectedRoles()
 
 void RolesModule::handleRoleDeletion()
 {
-    if(not this->connection->open())
-    {
-        QMessageBox::critical(this, "Internal error",
-                              QString("Deletion could not be performed due to: %1").arg(this->connection->error().text));
+    if(not this->tryConnect())
         return;
-    }
 
-    bool errorFlag = false;
+    auto indexes = this->ui->rolesList->selectionModel()->selectedIndexes();
 
-    for(QModelIndex& index : this->ui->rolesList->selectionModel()->selectedIndexes())
-    {
-        if(not this->model->role(index)->remove()) // API calling for deletion
-            errorFlag = true; // flag any request failed
+    auto error = this->model->removeRole(indexes.front().row());
 
-        this->ui->rolesList->setRowHidden(index.row(), true); // hide deleted role
-    }
+    if(error.isError())
+        return error.show(this);
 
-    if(errorFlag)
-    {
-        QString msg("Deletion of these roles is failed:\n");
-
-        for(QModelIndex& index : this->ui->rolesList->selectionModel()->selectedIndexes())
-        {
-            auto role = this->model->role(index);
-
-            if(role->error().type != dbapi::ApiError::NoError)
-            {
-                msg.append(QString("%1 %2\n").arg(role->name(), role->error().text));
-                this->ui->rolesList->setRowHidden(index.row(), false); // unhide not deleted roles
-            }
-        }
-
-        QMessageBox::warning(this, "Deletion", msg);
-    }
-    else
-        QMessageBox::information(this, "Deletion", "All selected roles had been deleted");
+    QMessageBox::information(this, "Info", "All selected roles have been deleted");
 
     this->connection->close();
 }
@@ -134,46 +118,26 @@ void RolesModule::completeRoleCreation()
     if(this->roleCreationDialog->result() == QDialog::Rejected)
         return;
 
-    if(not this->connection->open())
-    {
-        QMessageBox::critical(this, "Internal error",
-                              QString("Creation could not be performed due to: %1").arg(this->connection->error().text));
+    if(not this->tryConnect())
         return;
-    }
 
-    dbapi::Role role(this->connection);
-
-    role.setName(this->roleCreationDialog->roleName());
-
-    if(not role.store())
-    {
-        QMessageBox::warning(this, "Creation",
-                            QString("The creation of the new role: %1 is failed due to: %2").arg(role.name(), role.error().text));
-
-        this->connection->close();
-        return;
-    }
-
+    auto error = this->model->createRole(this->roleCreationDialog->roleName());
     this->connection->close();
 
-    this->model->insertRow(this->model->rowCount(), role);
-    QMessageBox::information(this, "Creation", QString("The creation of the new role: %1 is succeed").arg(role.name()));
+    if(error.isError())
+        return error.show(this);
+
+    QMessageBox::information(this, "Info", "Role is created");
 }
 
 void RolesModule::handleRolesLoading()
 {
-    if(not this->connection->open())
-    {
-        QMessageBox::critical(this, "Internal error",
-                              QString("Loading could not be performed due to: %1").arg(this->connection->error().text));
+    if(not this->tryConnect())
         return;
-    }
 
-    this->model->clear();
     auto error = this->model->loadAll();
-
-    if(error.type != dbapi::ApiError::NoError)
-        QMessageBox::warning(this, "Loading", QString("Loading of all roles is failed due to: %1").arg(error.text));
-
     this->connection->close();
+
+    if(error.isError())
+        return error.show(this);
 }

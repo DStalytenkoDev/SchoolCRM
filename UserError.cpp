@@ -30,6 +30,38 @@ QMessageBox *UserError::formMessage(QWidget *parent) const
     return this->createMessageBox(parent);
 }
 
+UserError UserError::actionErrorTemplate(const QString &errorType, const QString &actionObject, const QString &failedAction, const QString &description)
+{
+    QString shortText = QString("%1: %2 can`t %2").arg(errorType, actionObject, failedAction);
+
+    return UserError("Error", shortText, description);
+}
+
+UserError UserError::referenceError(const QString &actionObject, const QString &failedAction, const QString &description)
+{
+    return UserError::actionErrorTemplate("Reference error", actionObject, failedAction, description);
+}
+
+UserError UserError::keyError(const QString &actionObject, const QString &failedAction, const QString &description)
+{
+    return UserError::actionErrorTemplate("Key Error", actionObject, failedAction, description);
+}
+
+UserError UserError::connectionError(const QString &actionObject, const QString &failedAction, const QString &description)
+{
+    return UserError::actionErrorTemplate("Connection Error", actionObject, failedAction, description);
+}
+
+UserError UserError::validityError(const QString &actionObject, const QString &failedAction, const QString &description)
+{
+    return UserError::actionErrorTemplate("Validity Error", actionObject, failedAction, description);
+}
+
+UserError UserError::internalError(const QString &actionObject, const QString &failedAction, const QString &description)
+{
+    return UserError::actionErrorTemplate("Internal Error", actionObject, failedAction, description);
+}
+
 QMessageBox *UserError::createMessageBox(QWidget *parent) const
 {
     auto box = new QMessageBox(parent);
