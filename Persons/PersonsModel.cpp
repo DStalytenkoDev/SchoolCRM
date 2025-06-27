@@ -1,3 +1,4 @@
+#include <QDate>
 #include "PersonsModel.h"
 
 PersonsModel::PersonsModel(QObject *parent) : QAbstractListModel(parent)
@@ -6,21 +7,122 @@ PersonsModel::PersonsModel(QObject *parent) : QAbstractListModel(parent)
 
 void PersonsModel::setConnection(dbapi::Connection *connection)
 {
+    assert((void("nullptr"), connection != nullptr));
+
     this->connection = connection;
 }
 
-dbapi::ApiError PersonsModel::loadAll()
+UserError PersonsModel::loadAll()
 {
     dbapi::ApiError error;
 
-    this->cleanPersons();
+    this->beginResetModel();
+    this->clear();
 
     this->persons = dbapi::Person::loadAll(this->connection, &error);
 
-    if(error.type != dbapi::ApiError::NoError)
-        return error;
+    this->endResetModel();
 
-    this->beginInsertRows(QModelIndex(), 0, persons.size() - 1);
+    if(error.type != dbapi::ApiError::NoError)
+        return UserError::internalError("Persons", "be loaded 'cause an unknown error", "Try again or contact support");
+
+    return {};
+}
+
+UserError PersonsModel::removePerson(int index)
+{
+    assert((void("out of range"), index > 0 && index < this->persons.size()));
+
+    auto person = this->persons[index];
+
+    if(not person->remove())
+    {
+        UserError userError;
+
+        if(person->error().type == dbapi::ApiError::PolicyError)
+            return UserError::referenceError("Person", "be removed 'cause its related", "Try first removing objects are using certain person");
+        else
+            return UserError::internalError("Person", "be removed 'cause an unknown error", "Try again or contact support");
+    }
+
+    this->beginRemoveRows({}, index, index);
+
+    delete person;
+    this->persons.removeAt(index);
+
+    this->endRemoveRows();
+
+    return {};
+}
+
+UserError PersonsModel::createPerson(const QString &firstName, const QString &secondName, const QDate &birthday, const dbapi::Role::Key &role)
+{
+    auto error = this->loadAll();
+
+    if(error.isError())
+        return UserError::internalError("Person", "be created 'cause an unknown error", "Try again or contact support");
+
+    QString trimmedFirstName = firstName.trimmed();
+    QString trimmedSecondName = secondName.trimmed();
+
+    if(trimmedFirstName.isEmpty() or trimmedSecondName.isEmpty())
+        return UserError::validityError("Person", "be created 'cause it has empty first or second name");
+
+    for(auto person: this->persons)
+        if(person->firstName() == trimmedFirstName and person->secondName() == trimmedSecondName)
+            return UserError::validityError("Person", "be created 'cause it already exists");
+
+    auto person = new dbapi::Person(this->connection);
+
+    person->setFirstName(trimmedFirstName);
+    person->setSecondName(trimmedSecondName);
+    person->setBirthday(birthday.toJulianDay());
+    person->setRole(role);
+
+    if(not person->store())
+    {
+        delete person;
+        return UserError::internalError("Person", "be created 'cause an unknown error", "Try again or contact support");
+    }
+
+    this->beginInsertRows({}, this->persons.size(), this->persons.size());
+    this->persons.append(person);
+    this->endInsertRows();
+
+    return {};
+}
+
+UserError PersonsModel::editPerson(int index, const QString &firstName, const QString &secondName, const QDate &birthday, const dbapi::Role::Key &role)
+{
+    assert((void("out of range"), index > 0 && index < this->persons.size()));
+
+    auto person = this->persons[index];
+
+    auto error = this->loadAll();
+
+    if(error.isError())
+        return UserError::internalError("Person", "be edited 'cause an unknown error", "Try again or contact support");
+
+    QString trimmedFirstName = firstName.trimmed();
+    QString trimmedSecondName = secondName.trimmed();
+
+    if(trimmedFirstName.isEmpty() or trimmedSecondName.isEmpty())
+        return UserError::validityError("Person", "be edited 'cause it has empty first or second name");
+
+    for(auto person: this->persons)
+        if(person->firstName() == trimmedFirstName and person->secondName() == trimmedSecondName)
+            return UserError::validityError("Person", "be edited 'cause same one already exists");
+
+    person->setFirstName(trimmedFirstName);
+    person->setSecondName(trimmedSecondName);
+    person->setBirthday(birthday.toJulianDay());
+    person->setRole(role);
+
+    if(not person->update())
+        return UserError::internalError("Person", "be edited 'cause an unknown error", "Try again or contact support");
+
+    this->beginInsertRows({}, this->persons.size(), this->persons.size());
+    this->persons.append(person);
     this->endInsertRows();
 
     return {};
@@ -28,17 +130,16 @@ dbapi::ApiError PersonsModel::loadAll()
 
 dbapi::Person *PersonsModel::person(const QModelIndex &index)
 {
+    assert((void("out of range"), index.row() > 0 && index.row() < this->persons.size()));
+
     return this->persons[index.row()];
 }
 
 dbapi::Person *PersonsModel::person(int row)
 {
-    return this->persons[row];
-}
+    assert((void("out of range"), row > 0 && row < this->persons.size()));
 
-void PersonsModel::personNameEdited(const QModelIndex &index)
-{
-    emit this->dataChanged(index, index, {Qt::DisplayRole});
+    return this->persons[row];
 }
 
 int PersonsModel::rowCount(const QModelIndex &parent) const
@@ -67,55 +168,23 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
     return fullName;
 }
 
-bool PersonsModel::insertRow(int rowBefore, const dbapi::Person &person, const QModelIndex &parent)
-{
-    auto len = this->persons.size();
-
-    if(len == 0)
-    {
-        beginInsertRows({}, rowBefore, rowBefore);
-        this->persons.append(new dbapi::Person(person));
-        endInsertRows();
-
-        return true;
-    }
-
-    if(rowBefore >= 0 and rowBefore <= len)
-    {
-        beginInsertRows({}, rowBefore, rowBefore);
-        this->persons.insert(rowBefore, new dbapi::Person(person));
-        endInsertRows();
-
-        return true;
-    }
-
-    return false;
-}
-
 void PersonsModel::clear()
 {
-    this->cleanPersons();
-}
-
-PersonsModel::~PersonsModel()
-{
-    for(auto person : this->persons)
-        delete person;
-}
-
-void PersonsModel::cleanPersons()
-{
-    auto len = this->persons.size();
-
-    if(len == 0)
+    if(this->persons.size())
         return;
 
-    beginRemoveRows(QModelIndex(), 0, len - 1);
+    this->beginResetModel();
 
     for(auto person : this->persons)
         delete person;
 
     this->persons.clear();
 
-    endRemoveRows();
+    this->endResetModel();
+}
+
+PersonsModel::~PersonsModel()
+{
+    for(auto person : this->persons)
+        delete person;
 }

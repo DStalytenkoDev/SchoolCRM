@@ -4,6 +4,7 @@
 
 #include <QAbstractTableModel>
 #include <SchoolApi/Person.h>
+#include "UserError.h"
 
 
 /// provides person's name as a solid string
@@ -15,20 +16,26 @@ public:
     void setConnection(dbapi::Connection* connection);
 
     /// req: called setConnection() with a valid arg
-    dbapi::ApiError loadAll();
+    UserError loadAll();
+    UserError removePerson(int index);
+    UserError createPerson(const QString& firstName,
+                           const QString& secondName,
+                           const QDate& birthday,
+                           const dbapi::Role::Key& role);
+
+    UserError editPerson(int index,
+                         const QString& firstName,
+                         const QString& secondName,
+                         const QDate& birthday,
+                         const dbapi::Role::Key& role);
 
     /// in case of any not valid index undefined behaviour
     dbapi::Person* person(const QModelIndex& index);
     /// in case of any not valid index undefined behaviour
     dbapi::Person* person(int row);
 
-    /// must be called when dbapi::Person object is edited (first or second persons's name)
-    void personNameEdited(const QModelIndex& index);
-
     virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-
-    bool insertRow(int rowBefore, const dbapi::Person& person, const QModelIndex &parent = QModelIndex());
 
     void clear();
 
@@ -37,8 +44,6 @@ public:
 private:
     dbapi::Connection* connection = nullptr;
     QList<dbapi::Person*> persons;
-
-    void cleanPersons();
 };
 
 
