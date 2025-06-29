@@ -121,9 +121,8 @@ UserError PersonsModel::editPerson(int index, const QString &firstName, const QS
     if(not person->update())
         return UserError::internalError("Person", "be edited 'cause an unknown error", "Try again or contact support");
 
-    this->beginInsertRows({}, this->persons.size(), this->persons.size());
-    this->persons.append(person);
-    this->endInsertRows();
+    QModelIndex modelIndex = this->index(index);
+    emit this->dataChanged(modelIndex, modelIndex, {Qt::DisplayRole});
 
     return {};
 }
@@ -170,7 +169,7 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
 
 void PersonsModel::clear()
 {
-    if(this->persons.size())
+    if(this->persons.size() == 0)
         return;
 
     this->beginResetModel();
