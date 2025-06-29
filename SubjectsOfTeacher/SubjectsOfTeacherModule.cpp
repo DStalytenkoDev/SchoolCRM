@@ -38,17 +38,17 @@ void SubjectsOfTeacherModule::prepare()
 
     this->ui->additionMenu->hide();
 
-    if(error.type == dbapi::ApiError::NoError)
+    if(error.isError())
     {
-        this->personFinder->setDisabled(false);
-        this->personFinder->setCurrentIndex(-1);
-        this->ui->addSubject->setHidden(false);
+        this->personFinder->setDisabled(true);
+        this->ui->addSubject->hide();
+        error.show(this);
         return;
     }
 
-    this->showInternalError();
-    this->personFinder->setDisabled(true);
-    this->ui->addSubject->hide();
+    this->personFinder->setDisabled(false);
+    this->personFinder->setCurrentIndex(-1);
+    this->ui->addSubject->setHidden(false);
 }
 
 SubjectsOfTeacherModule::~SubjectsOfTeacherModule()
@@ -67,18 +67,18 @@ void SubjectsOfTeacherModule::handleSelectedTeacher()
         return;
 
     auto teacherKey = this->currentTeacher()->key();
-    auto error = this->model->loadSubjects(teacherKey);
+    this->model->setTeacher(teacherKey);
 
+    auto error = this->model->loadSubjects();
     this->connection->close();
 
-    if(error.type != dbapi::ApiError::NoError)
-        if(error.type != dbapi::ApiError::KeyError)
-            this->showInternalError();
+    if(error.isError())
+        return error.show(this);
 
     this->ui->addSubject->setHidden(false);
 }
 
-void SubjectsOfTeacherModule::handleSelectedSubjects()
+void SubjectsOfTeacherModule::handleSelectedSubject()
 {
     auto selection = this->ui->subjectsList->selectionModel()->selection();
 
@@ -94,32 +94,18 @@ void SubjectsOfTeacherModule::handleSelectedSubjects()
     }
 }
 
-void SubjectsOfTeacherModule::handleSubjectsDeleting()
+void SubjectsOfTeacherModule::handleSubjectDeleting()
 {
     if(not this->tryConnect())
         return;
 
-    dbapi::TeacherSubjectsList list({this->currentTeacher()->key()}, this->connection);
-
-    auto selectedIndexes = this->ui->subjectsList->selectionModel()->selectedIndexes();
-
-    for(QModelIndex& index : selectedIndexes)
-    {
-        auto key = this->model->subject(index);
-
-        list.appendSubject(key);
-    }
-
-    bool deleted = list.remove();
+    auto error = this->model->removeSubject(this->ui->subjectsList->currentIndex().row());
     this->connection->close();
 
-    if(not deleted)
-        return this->showInternalError();
+    if(error.isError())
+        return error.show(this);
 
-    for(QModelIndex& index : selectedIndexes)
-        this->model->removeRow(index.row());
-
-    QMessageBox::information(this, "Deletion", "All selected subjects had been deleted");
+    QMessageBox::information(this, "Info", "All selected subjects had been deleted");
 }
 
 void SubjectsOfTeacherModule::initSubjectAddition()
@@ -130,8 +116,8 @@ void SubjectsOfTeacherModule::initSubjectAddition()
     auto error = this->subjectsModel->loadAll();
     this->connection->close();
 
-    if(error.type != dbapi::ApiError::NoError)
-        return this->showInternalError();
+    if(error.isError())
+        return error.show(this);
 
     this->ui->additionMenu->setHidden(false);
     this->ui->subjectsList->clearSelection();
@@ -149,19 +135,12 @@ void SubjectsOfTeacherModule::completeSubjectAddition()
     if(not this->tryConnect())
         return;
 
-    dbapi::TeacherSubjectsList list({this->currentTeacher()->key()}, this->connection);
-
     auto subject = this->subjectsModel->subject(this->subjectFinder->currentIndex());
 
-    list.appendSubject(subject->key());
+    auto error = this->model->appendSubject(subject->key());
 
-    bool updated = list.update();
-    this->connection->close();
-
-    if(updated)
-        this->model->insertRow(*subject);
-    else
-        this->showInternalError();
+    if(error.isError())
+        error.show(this);
 
     this->abortSubjectAddition();
 }
@@ -171,15 +150,15 @@ void SubjectsOfTeacherModule::loadSubjects()
     if(not this->tryConnect())
         return;
 
-    auto error = this->model->loadSubjects(this->currentTeacher()->key());
+    this->model->setTeacher(this->currentTeacher()->key());
+
+    auto error = this->model->loadSubjects();
     this->connection->close();
 
     this->ui->subjectsList->clearSelection();
 
-    if(error.type == dbapi::ApiError::NoError)
-        return;
-
-    this->showInternalError();
+    if(error.isError())
+        error.show(this);
 }
 
 void SubjectsOfTeacherModule::setupFinders()
@@ -199,10 +178,10 @@ void SubjectsOfTeacherModule::setupSubjectsList()
 {
     this->ui->subjectsList->setModel(this->model);
     this->ui->subjectsList->setSelectionBehavior(QAbstractItemView::SelectRows);
-    this->ui->subjectsList->setSelectionMode(QAbstractItemView::MultiSelection);
+    this->ui->subjectsList->setSelectionMode(QAbstractItemView::SingleSelection);
 
     // handle selection
-    connect(this->ui->subjectsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &SubjectsOfTeacherModule::handleSelectedSubjects);
+    connect(this->ui->subjectsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &SubjectsOfTeacherModule::handleSelectedSubject);
 }
 
 void SubjectsOfTeacherModule::setupToolBar()
@@ -219,7 +198,7 @@ void SubjectsOfTeacherModule::setupToolBar()
     connect(this->ui->abortAddition, &QPushButton::clicked, this, &SubjectsOfTeacherModule::abortSubjectAddition);
 
     // handle deletion
-    connect(this->ui->deleteSubject, &QPushButton::clicked, this, &SubjectsOfTeacherModule::handleSubjectsDeleting);
+    connect(this->ui->deleteSubject, &QPushButton::clicked, this, &SubjectsOfTeacherModule::handleSubjectDeleting);
 
     this->personFinder->setDisabled(true);
     this->ui->addSubject->hide();
@@ -230,14 +209,9 @@ bool SubjectsOfTeacherModule::tryConnect()
     if(this->connection->open())
         return true;
 
-    this->showInternalError();
+    UserError::connectionError("Command", "be executed 'cause connection to the server failed").show(this);
 
     return false;
-}
-
-void SubjectsOfTeacherModule::showInternalError()
-{
-    QMessageBox::critical(this, "Internal error", "Please check your connection to the database");
 }
 
 dbapi::Person *SubjectsOfTeacherModule::currentTeacher()

@@ -40,9 +40,9 @@ private:
     dbapi::Connection* connection = nullptr;
 
     void handleSelectedTeacher();
-    void handleSelectedSubjects();
+    void handleSelectedSubject();
 
-    void handleSubjectsDeleting();
+    void handleSubjectDeleting();
 
     void initSubjectAddition();
     void abortSubjectAddition();
@@ -55,7 +55,6 @@ private:
     void setupToolBar();
 
     bool tryConnect();
-    void showInternalError();
 
     /// if not selected returns nullptr
     dbapi::Person* currentTeacher();

@@ -19,9 +19,9 @@ public:
     UserError removeSubject(int index);
 
     /// in case of any not valid index undefined behaviour
-    dbapi::Subject::Key subject(const QModelIndex& index);
+    dbapi::Subject* subject(const QModelIndex& index);
     /// in case of any not valid index undefined behaviour
-    dbapi::Subject::Key subject(int row);
+    dbapi::Subject* subject(int row);
 
     virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
