@@ -8,21 +8,86 @@ SubjectsModel::SubjectsModel(QObject *parent)
 
 void SubjectsModel::setConnection(dbapi::Connection *connection)
 {
+    assert((void("nullptr"), connection != nullptr));
+
     this->connection = connection;
 }
 
-dbapi::ApiError SubjectsModel::loadAll()
+UserError SubjectsModel::loadAll()
 {
     dbapi::ApiError error;
 
-    this->cleanSubjects();
+    this->beginResetModel();
+    this->clear();
 
     this->subjects = dbapi::Subject::loadAll(this->connection, &error);
 
-    if(error.type != dbapi::ApiError::NoError)
-        return error;
+    this->endResetModel();
 
-    this->beginInsertRows({}, 0, this->subjects.size() - 1);
+    if(error.type != dbapi::ApiError::NoError)
+        return UserError::internalError("Subjects", "be loaded 'cause an unknown error", "Try again or contact support");
+
+    return {};
+}
+
+UserError SubjectsModel::removeSubject(int index)
+{
+    bool indexInRange = index > 0 && index < this->subjects.size();
+
+    assert((void("out of range"), indexInRange));
+
+    if(not indexInRange)
+        return UserError::internalError("Subjects", "be removed 'cause an unknown error", "Try again or contact support");
+
+    auto subject = this->subjects[index];
+
+    if(not subject->remove())
+    {
+        UserError userError;
+
+        if(subject->error().type == dbapi::ApiError::PolicyError)
+            return UserError::referenceError("Subject", "be removed 'cause its related", "Try first removing objects are using certain subject");
+        else
+            return UserError::internalError("Subject", "be removed 'cause an unknown error", "Try again or contact support");
+    }
+
+    this->beginRemoveRows({}, index, index);
+
+    delete subject;
+    this->subjects.removeAt(index);
+
+    this->endRemoveRows();
+
+    return {};
+}
+
+UserError SubjectsModel::createSubject(const QString &name)
+{
+    auto error = this->loadAll();
+
+    if(error.isError())
+        return UserError::internalError("Subject", "be created 'cause an unknown error", "Try again or contact support");
+
+    QString trimmedName = name.trimmed();
+
+    if(trimmedName.isEmpty())
+        return UserError::validityError("Subject", "be created 'cause its empty");
+
+    for(auto subject : this->subjects)
+        if(subject->name() == trimmedName)
+            return UserError::validityError("Subject", "be created 'cause it already exists");
+
+    auto subject = new dbapi::Subject(this->connection);
+    subject->setName(trimmedName);
+
+    if(not subject->store())
+    {
+        delete subject;
+        return UserError::internalError("Subject", "be created 'cause an unknown error", "Try again or contact support");
+    }
+
+    this->beginInsertRows({}, this->subjects.size(), this->subjects.size());
+    this->subjects.append(subject);
     this->endInsertRows();
 
     return {};
@@ -30,11 +95,15 @@ dbapi::ApiError SubjectsModel::loadAll()
 
 dbapi::Subject *SubjectsModel::subject(const QModelIndex &index)
 {
+    assert((void("out of range"), index.row() >= this->subjects.count()));
+
     return this->subjects[index.row()];
 }
 
 dbapi::Subject *SubjectsModel::subject(int row)
 {
+    assert((void("out of range"), row >= this->subjects.count()));
+
     return this->subjects[row];
 }
 
@@ -57,50 +126,23 @@ QVariant SubjectsModel::data(const QModelIndex &index, int role) const
     return this->subjects[index.row()]->name();
 }
 
-bool SubjectsModel::insertRow(int rowBefore, const dbapi::Subject &subject, const QModelIndex &parent)
+void SubjectsModel::clear()
 {
-    auto len = this->subjects.size();
+    if(this->subjects.size() == 0)
+        return;
 
-    if(len == 0)
-    {
-        beginInsertRows({}, rowBefore, rowBefore);
-        this->subjects.append(new dbapi::Subject(subject));
-        endInsertRows();
+    this->beginResetModel();
 
-        return true;
-    }
+    for(auto subject : this->subjects)
+        delete subject;
 
-    if(rowBefore >= 0 and rowBefore <= len)
-    {
-        beginInsertRows({}, rowBefore, rowBefore);
-        this->subjects.insert(rowBefore, new dbapi::Subject(subject));
-        endInsertRows();
+    this->subjects.clear();
 
-        return true;
-    }
-
-    return false;
+    this->endResetModel();
 }
 
 SubjectsModel::~SubjectsModel()
 {
     for(auto subject : this->subjects)
         delete subject;
-}
-
-void SubjectsModel::cleanSubjects()
-{
-    auto len = this->subjects.size();
-
-    if(len == 0)
-        return;
-
-    beginRemoveRows(QModelIndex(), 0, len - 1);
-
-    for(auto subjects : this->subjects)
-        delete subjects;
-
-    this->subjects.clear();
-
-    endRemoveRows();
 }

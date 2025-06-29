@@ -7,55 +7,97 @@ SubjectsOfTeacherModel::SubjectsOfTeacherModel(QObject *parent)
 
 void SubjectsOfTeacherModel::setConnection(dbapi::Connection* connection)
 {
+    assert((void("nullptr"), connection != nullptr));
+
     this->connection = connection;
 }
 
-dbapi::ApiError SubjectsOfTeacherModel::loadSubjects(const dbapi::Person::Key& key)
+void SubjectsOfTeacherModel::setTeacher(const dbapi::Person::Key &key)
 {
-    dbapi::TeacherSubjectsList list({key}, this->connection);
+    this->teacher = key;
+}
+
+UserError SubjectsOfTeacherModel::loadSubjects()
+{
+    dbapi::TeacherSubjectsList list({this->teacher}, this->connection);
 
     if(not list.load())
-        return list.error();
+        return UserError::internalError("Subjects", "be loaded 'cause an unknown error", "Try again or contact support");
 
     this->beginResetModel();
 
-    int len = list.subjects().count();
-    dbapi::Subject subject(this->connection);
+    this->subjects.resize(list.subjects().count());
 
-    this->items.resize(len);
+    for(int idx = 0; idx < this->subjects.size(); idx++)
+        this->subjects[idx] = new dbapi::Subject(list.subjects()[idx], this->connection);
 
-    for(int idx = 0; idx < len; idx++)
+    UserError error;
+
+    for(auto subject : this->subjects)
     {
-        subject.setKey(list.subjects()[idx]);
-
-        if(not subject.load())
+        if(subject->load())
         {
-            this->endInsertRows();
-            return subject.error();
-        }
+            for(auto subject : this->subjects)
+                delete subject;
 
-        this->items[idx].key = subject.key();
-        this->items[idx].text = subject.name();
+            this->subjects.clear();
+
+            error = UserError::internalError("Subjects", "be loaded 'cause an unknown error", "Try again or contact support");
+
+            break;
+        }
     }
 
     this->connection->close();
     this->endResetModel();
+    return error;
+}
+
+UserError SubjectsOfTeacherModel::appendSubject(const dbapi::Subject::Key &key)
+{
+    dbapi::TeacherSubjectsList list({this->teacher}, this->connection);
+
+    if(not list.load())
+        return UserError::internalError("Subject", "be appended 'cause an unknown error", "Try again or contact support");
+
+    for(auto& subject : list.subjects())
+        if(subject == key)
+            return UserError::keyError("Subject", "be appended 'cause its already in the list");
+
+    list.appendSubject(key);
+    if(not list.store())
+        return UserError::internalError("Subject", "be appended 'cause an unknown error", "Try again or contact support");
+
+    auto subject = new dbapi::Subject(key, this->connection);
+
+    if(not subject->load())
+        subject->setName("_Error_value_");
+
+    this->subjects.append(subject);
+
     return {};
+}
+
+UserError SubjectsOfTeacherModel::removeSubject(int index)
+{
+    assert((void("out of range"), index > 0 && index < this->subjects.size()));
+
+
 }
 
 dbapi::Subject::Key SubjectsOfTeacherModel::subject(const QModelIndex &index)
 {
-    return this->items[index.row()].key;
+    return this->subjects[index.row()].key;
 }
 
 dbapi::Subject::Key SubjectsOfTeacherModel::subject(int row)
 {
-    return this->items[row].key;
+    return this->subjects[row].key;
 }
 
 int SubjectsOfTeacherModel::rowCount(const QModelIndex &parent) const
 {
-    return this->items.count();
+    return this->subjects.count();
 }
 
 QVariant SubjectsOfTeacherModel::data(const QModelIndex &index, int role) const
@@ -66,19 +108,19 @@ QVariant SubjectsOfTeacherModel::data(const QModelIndex &index, int role) const
     if(not index.isValid())
         return {};
 
-    if(index.row() >= this->items.count())
+    if(index.row() >= this->subjects.count())
         return {};
 
-    return this->items[index.row()].text;
+    return this->subjects[index.row()].text;
 }
 
 void SubjectsOfTeacherModel::insertRow(const dbapi::Subject &subject)
 {
-    auto len = this->items.size();
+    auto len = this->subjects.size();
 
     beginInsertRows({}, len, len);
 
-    this->items.push_front({subject.name(), subject.key()});
+    this->subjects.push_front({subject.name(), subject.key()});
 
     endInsertRows();
 }
@@ -87,7 +129,7 @@ void SubjectsOfTeacherModel::removeRow(int row)
 {
     beginRemoveRows({}, row, row);
 
-    this->items.remove(row);
+    this->subjects.remove(row);
 
     endRemoveRows();
 }
@@ -96,7 +138,13 @@ void SubjectsOfTeacherModel::clear()
 {
     this->beginResetModel();
 
-    this->items.clear();
+    this->subjects.clear();
 
     this->endResetModel();
+}
+
+SubjectsOfTeacherModel::~SubjectsOfTeacherModel()
+{
+    for(auto subject : this->subjects)
+        delete subject;
 }
