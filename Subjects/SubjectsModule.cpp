@@ -18,7 +18,7 @@ SubjectsModule::SubjectsModule(QWidget *parent)
     this->setupSubjectList();
 
     // handle deleting
-    connect(this->ui->deleteSubject, &QPushButton::clicked, this, &SubjectsModule::handleSubjectsDeletion);
+    connect(this->ui->deleteSubject, &QPushButton::clicked, this, &SubjectsModule::handleSubjectDeletion);
 
     // handle creation
     connect(this->ui->createSubject, &QPushButton::clicked, this, &SubjectsModule::initSubjectCreation);
@@ -43,7 +43,7 @@ void SubjectsModule::handleFoundSubject(QModelIndex index)
     this->ui->subjectsList->scrollTo(index);
 }
 
-void SubjectsModule::handleSelectedSubjects()
+void SubjectsModule::handleSelectedSubject()
 {
     auto& selection = this->ui->subjectsList->selectionModel()->selection();
 
@@ -53,48 +53,21 @@ void SubjectsModule::handleSelectedSubjects()
         this->ui->deleteSubject->show();
 }
 
-void SubjectsModule::handleSubjectsDeletion()
+void SubjectsModule::handleSubjectDeletion()
 {
-    if(not this->connection->open())
-    {
-        QMessageBox::critical(this, "Internal error",
-                              QString("Deletion could not be performed due to: %1").arg(this->connection->error().text));
+    if(not this->tryConnect())
         return;
-    }
 
-    bool errorFlag = false;
+    auto indexes = this->ui->subjectsList->selectionModel()->selectedIndexes();
 
-    for(QModelIndex& index : this->ui->subjectsList->selectionModel()->selectedIndexes())
-    {
-        if(not this->model->subject(index)->remove()) // API calling for deletion
-            errorFlag = true; // flag any request failed
+    auto error = this->model->removeSubject(indexes.front().row());
 
-        this->ui->subjectsList->setRowHidden(index.row(), true); // hide deleted subject
-    }
+    if(error.isError())
+        return error.show(this);
+
+    QMessageBox::information(this, "Info", "All selected subjects have been deleted");
 
     this->connection->close();
-
-    if(errorFlag)
-    {
-        QString msg("Deletion of these subjects is failed:\n");
-
-        for(QModelIndex& index : this->ui->subjectsList->selectionModel()->selectedIndexes())
-        {
-            auto subject = this->model->subject(index);
-
-            if(subject->error().type != dbapi::ApiError::NoError)
-            {
-                msg.append(QString("%1 %2\n").arg(subject->name(), subject->error().text));
-                this->ui->subjectsList->setRowHidden(index.row(), false); // unhide not deleted subjects
-            }
-        }
-
-        QMessageBox::warning(this, "Deletion", msg);
-    }
-    else
-        QMessageBox::information(this, "Deletion", "All selected subjects had been deleted"); // report a success
-
-    this->ui->subjectsList->clearSelection();
 }
 
 void SubjectsModule::initSubjectCreation()
@@ -113,47 +86,28 @@ void SubjectsModule::completeSubjectCreation()
     if(this->subjectCreationDialog->result() == QDialog::Rejected)
         return;
 
-    if(not this->connection->open())
-    {
-        QMessageBox::critical(this, "Internal error",
-                              QString("Creation could not be performed due to: %1").arg(this->connection->error().text));
+    if(not this->tryConnect())
         return;
-    }
 
-    dbapi::Subject subject(this->connection);
-
-    subject.setName(this->subjectCreationDialog->subject());
-
-    if(not subject.store())
-    {
-        QMessageBox::warning(this, "Creation",
-                            QString("The creation of the new subject: %1 is failed due to: %2").arg(subject.name(), subject.error().text));
-
-        this->connection->close();
-        return;
-    }
-
+    auto error = this->model->createSubject(this->subjectCreationDialog->subject());
     this->connection->close();
 
-    this->model->insertRow(this->model->rowCount(), subject);
-    QMessageBox::information(this, "Creation", QString("The creation of the new subject: %1 is succeed").arg(subject.name()));
+    if(error.isError())
+        return error.show(this);
+
+    QMessageBox::information(this, "Info", "Subject is created");
 }
 
 void SubjectsModule::handleSubjectsLoading()
 {
-    if(not this->connection->open())
-    {
-        QMessageBox::critical(this, "Internal error",
-                              QString("Loading could not be performed due to: %1").arg(this->connection->error().text));
+    if(not this->tryConnect())
         return;
-    }
 
     auto error = this->model->loadAll();
-
-    if(error.type != dbapi::ApiError::NoError)
-        QMessageBox::warning(this, "Loading", QString("Loading of all subjects is failed due to: %1").arg(error.text));
-
     this->connection->close();
+
+    if(error.isError())
+        return error.show(this);
 }
 
 void SubjectsModule::setupSubjectFinder()
@@ -175,8 +129,17 @@ void SubjectsModule::setupSubjectList()
 {
     this->ui->subjectsList->setModel(this->model);
     this->ui->subjectsList->setSelectionBehavior(QAbstractItemView::SelectRows);
-    this->ui->subjectsList->setSelectionMode(QAbstractItemView::MultiSelection);
+    this->ui->subjectsList->setSelectionMode(QAbstractItemView::SingleSelection);
 
     // handle selection
-    connect(this->ui->subjectsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &SubjectsModule::handleSelectedSubjects);
+    connect(this->ui->subjectsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &SubjectsModule::handleSelectedSubject);
+}
+
+bool SubjectsModule::tryConnect()
+{
+    if(this->connection->open())
+        return true;
+
+    UserError::connectionError("Command", "be executed 'cause connection to the server failed").show(this);
+    return false;
 }

@@ -3,23 +3,20 @@
 
 #include <SchoolApi/TeacherSubjectsList.h>
 #include <QAbstractListModel>
+#include "UserError.h"
 
 class SubjectsOfTeacherModel : public QAbstractListModel
 {
-private:
-    struct Item
-    {
-        QString text;
-        dbapi::Subject::Key key;
-    };
-
 public:
     SubjectsOfTeacherModel(QObject *parent = nullptr);
 
     void setConnection(dbapi::Connection* connection);
+    void setTeacher(const dbapi::Person::Key& key);
 
     /// req: called setConnection() with a valid arg
-    dbapi::ApiError loadSubjects(const dbapi::Person::Key& key);
+    UserError loadSubjects();
+    UserError appendSubject(const dbapi::Subject::Key& key);
+    UserError removeSubject(int index);
 
     /// in case of any not valid index undefined behaviour
     dbapi::Subject::Key subject(const QModelIndex& index);
@@ -29,13 +26,13 @@ public:
     virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
-    void insertRow(const dbapi::Subject& subject);
-    void removeRow(int row);
     void clear();
+    ~SubjectsOfTeacherModel();
 
 private:
     dbapi::Connection* connection;
-    QList<Item> items;
+    dbapi::Person::Key teacher;
+    QList<dbapi::Subject*> subjects;
 };
 
 #endif // SUBJECTSOFTEACHERMODEL_H

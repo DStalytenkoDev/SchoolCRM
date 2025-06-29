@@ -35,9 +35,9 @@ private:
     dbapi::Connection* connection = nullptr;
 
     void handleFoundSubject(QModelIndex index);
-    void handleSelectedSubjects();
+    void handleSelectedSubject();
 
-    void handleSubjectsDeletion();
+    void handleSubjectDeletion();
 
     void initSubjectCreation();
     void completeSubjectCreation();
@@ -46,6 +46,8 @@ private:
 
     void setupSubjectFinder();
     void setupSubjectList();
+
+    bool tryConnect();
 };
 
 
