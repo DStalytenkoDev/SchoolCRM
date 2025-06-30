@@ -290,55 +290,6 @@ void ClassesModule::handleClassDeleting()
     if(not this->tryConnect())
         return;
 
-    this->connection->transaction();
-
-    auto grade = this->currentClass();
-
-    // delete class subjects
-    dbapi::ClassSubjectsList subjectsList({grade->key()}, this->connection);
-    subjectsList.load();
-    subjectsList.remove();
-
-    // delete class students
-    dbapi::ApiError studentsDeletionError;
-    auto students = dbapi::Student::loadAll(this->connection, &studentsDeletionError);
-
-    for(auto student : students)
-    {
-        if(student->grade() == grade->key())
-            student->remove();
-
-        delete student;
-    }
-
-    // delete class teacher
-    dbapi::ApiError teacherDelitionError;
-    auto teachers = dbapi::Classmate::loadAll(this->connection, &teacherDelitionError);
-
-    for(auto teacher : teachers)
-    {
-        if(teacher->grade() == grade->key())
-            teacher->remove();
-
-        delete teacher;
-    }
-
-    // delete class
-    bool classDeleted = grade->remove();
-
-    if(not classDeleted)
-    {
-        this->connection->rollback();
-        this->showInternalError();
-    }
-    else
-    {
-        this->connection->commit();
-        QMessageBox::information(this, "Delition", "Class was deleted");
-
-        emit this->classDeletedIs();
-    }
-
     this->connection->close();
 }
 
@@ -457,30 +408,6 @@ void ClassesModule::completeClassCreation()
     if(not this->tryConnect())
         return;
 
-    this->connection->transaction();
-
-    dbapi::Class grade(this->connection);
-    grade.setName(this->classCreationDialog->name());
-    bool gradeStored = grade.store();
-
-    dbapi::Classmate teacher(this->connection);
-
-    auto person = this->personsModel->person(this->classCreationDialog->currentIndex());
-
-    teacher.setKey({person->key()});
-    teacher.setGrade(grade.key());
-    bool teacherStored = teacher.store();
-
-    if(teacherStored and gradeStored)
-    {
-        this->connection->commit();
-        QMessageBox::information(this, "Creation", "The class was created");
-    }
-    else
-    {
-        this->connection->rollback();
-        this->showInternalError();
-    }
 
     this->connection->close();
     emit this->reseted();

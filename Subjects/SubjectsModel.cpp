@@ -18,7 +18,9 @@ UserError SubjectsModel::loadAll()
     dbapi::ApiError error;
 
     this->beginResetModel();
-    this->clear();
+
+    for(auto subject : this->subjects)
+        delete subject;
 
     this->subjects = dbapi::Subject::loadAll(this->connection, &error);
 

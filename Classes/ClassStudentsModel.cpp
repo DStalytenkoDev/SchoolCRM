@@ -1,3 +1,4 @@
+#include <SchoolApi/Student.h>
 #include "ClassStudentsModel.h"
 
 ClassStudentsModel::ClassStudentsModel(QObject *parent)
@@ -6,48 +7,119 @@ ClassStudentsModel::ClassStudentsModel(QObject *parent)
 
 void ClassStudentsModel::setConnection(dbapi::Connection *connection)
 {
+    assert((void("nullptr"), connection));
+
     this->connection = connection;
 }
 
-dbapi::ApiError ClassStudentsModel::loadStudents(const dbapi::Class::Key &key)
+void ClassStudentsModel::setClass(const dbapi::Class::Key &key)
+{
+    this->classKey = key;
+}
+
+UserError ClassStudentsModel::loadAll()
+{
+    dbapi::ApiError error;
+
+    this->beginResetModel();
+
+    for(auto student : this->students)
+        delete student;
+
+    auto students = dbapi::Student::loadAll(this->connection, &error);
+
+    this->students.reserve(students.size());
+
+    if(error.type != dbapi::ApiError::NoError)
+        return UserError::internalError("Students", "be loaded 'cause an unknown error", "Try again or contact support");
+
+    for(auto student : students)
+    {
+        if(student->grade() == this->classKey)
+        {
+            this->students.append(new dbapi::Person(student->key().person, this->connection));
+
+            if(not this->students.back()->load())
+            {
+                this->endResetModel();
+                this->clear();
+
+                return UserError::internalError("Students", "be loaded 'cause an unknown error", "Try again or contact support");
+            }
+        }
+    }
+
+    this->endResetModel();
+
+    return {};
+}
+
+UserError ClassStudentsModel::appendStudent(const dbapi::Person::Key &key)
 {
     dbapi::ApiError error;
     auto students = dbapi::Student::loadAll(this->connection, &error);
 
     if(error.type != dbapi::ApiError::NoError)
-        return error;
-
-    this->beginResetModel();
-
-    this->students.reserve(students.count());
-    this->students.clear();
+        return UserError::internalError("Student", "be appended 'cause an unknown error", "Try again or contact support");
 
     for(auto student : students)
+        if(student->key().person == key)
+            return UserError::keyError("Student", "be appended 'cause its already in the list");
+
+    dbapi::Student student({key}, this->connection);
+    student.setGrade(this->classKey);
+
+    if(not student.store())
+        return UserError::internalError("Student", "be appended 'cause an unknown error", "Try again or contact support");
+
+    this->beginInsertRows({}, this->students.size(), this->students.size());
+
+    this->students.append(new dbapi::Person(key, this->connection));
+
+    if(not this->students.back()->load())
     {
-        // filter students of the class
-
-        if(student->grade() == key)
-            this->students.emplaceBack(student->key().person, this->connection);
-
-        delete student; // clean up students
+        this->students.back()->setFirstName("_Error_value_");
+        this->students.back()->setSecondName("...");
     }
 
-    // load names
-    for(auto& student : this->students)
-        student.load();
+    this->endInsertRows();
 
-    this->endResetModel();
+    return {};
+}
+
+UserError ClassStudentsModel::removeStudent(int index)
+{
+    assert((void("out of range"), index > 0 && index < this->students.size()));
+
+    if(not this->students[index]->remove())
+    {
+        switch (this->students[index]->error().type)
+        {
+        case dbapi::ApiError::PolicyError:
+            return UserError::referenceError("Student", "be removed 'cause its related", "Try first removing objects are using certain student");
+        default:
+            return UserError::internalError("Student", "be appended 'cause an unknown error", "Try again or contact support");
+        }
+    }
+
+    delete this->students[index];
+    this->students.remove(index);
+
     return {};
 }
 
 dbapi::Person* ClassStudentsModel::student(const QModelIndex &index)
 {
-    return &this->students[index.row()];
+    assert((void("out of range"), index.row() > 0 && index.row() < this->students.size()));
+
+    return this->students[index.row()];
 }
 
 dbapi::Person *ClassStudentsModel::student(int row)
 {
-    return &this->students[row];
+    assert((void("out of range"), row > 0 && row < this->students.size()));
+
+    return this->students[row];
 }
 
 int ClassStudentsModel::rowCount(const QModelIndex &parent) const
@@ -68,25 +140,20 @@ QVariant ClassStudentsModel::data(const QModelIndex &index, int role) const
 
     QString fullName("%1 %2");
 
-    return fullName.arg(this->students[index.row()].firstName(), this->students[index.row()].secondName());
+    return fullName.arg(this->students[index.row()]->firstName(), this->students[index.row()]->secondName());
 }
 
-void ClassStudentsModel::insertRow(const dbapi::Person& person)
+void ClassStudentsModel::clear()
 {
-    auto len = this->students.size();
+    if(this->students.size() == 0)
+        return;
 
-    beginInsertRows({}, len, len);
+    this->beginResetModel();
 
-    this->students.push_front(person);
+    for(auto student : this->students)
+        delete student;
 
-    endInsertRows();
-}
+    this->students.clear();
 
-void ClassStudentsModel::removeRow(int row)
-{
-    beginRemoveRows({}, row, row);
-
-    this->students.remove(row);
-
-    endRemoveRows();
+    this->endResetModel();
 }

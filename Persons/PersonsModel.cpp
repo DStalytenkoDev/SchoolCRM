@@ -17,7 +17,9 @@ UserError PersonsModel::loadAll()
     dbapi::ApiError error;
 
     this->beginResetModel();
-    this->clear();
+
+    for(auto person : this->persons)
+        delete person;
 
     this->persons = dbapi::Person::loadAll(this->connection, &error);
 
