@@ -17,7 +17,9 @@ UserError RolesModel::loadAll()
     dbapi::ApiError error;
 
     this->beginResetModel();
-    this->clear();
+
+    for(auto role : this->roles)
+        delete role;
 
     this->roles = dbapi::Role::loadAll(this->connection, &error);
 

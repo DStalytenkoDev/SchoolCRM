@@ -17,9 +17,10 @@ public:
 
     /// req: called setConnection() with a valid arg
     UserError loadAll();
-    UserError createClass(const dbapi::Person::Key& homeroomTeacher);
+    UserError createClass(const QString& name, const dbapi::Person::Key& homeroomTeacher);
     UserError removeClass(int index);
-    UserError changeHomeroomTeacher(const dbapi::Person::Key& homeroomTeacher);
+    UserError changeHomeroomTeacher(int index, const dbapi::Person::Key& homeroomTeacher);
+    UserError getHomeroomTeacher(int index);
 
     /// in case of any not valid index undefined behaviour
     dbapi::Class* grade(const QModelIndex& index);
@@ -36,6 +37,9 @@ public:
 private:
     dbapi::Connection* connection = nullptr;
     QList<dbapi::Class*> classes;
+
+    dbapi::Classmate* findTeacher(int index);
+    bool removeTeacher(int index);
 };
 
 #endif // CLASSESMODEL_H
