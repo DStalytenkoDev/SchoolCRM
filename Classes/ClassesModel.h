@@ -20,7 +20,7 @@ public:
     UserError createClass(const QString& name, const dbapi::Person::Key& homeroomTeacher);
     UserError removeClass(int index);
     UserError changeHomeroomTeacher(int index, const dbapi::Person::Key& homeroomTeacher);
-    UserError getHomeroomTeacher(int index);
+    std::variant<dbapi::Person::Key, UserError> getHomeroomTeacher(int index);
 
     /// in case of any not valid index undefined behaviour
     dbapi::Class* grade(const QModelIndex& index);

@@ -23,13 +23,11 @@ UserError SubjectsOfTeacherModel::loadSubjects()
 
     if(not list.load())
     {
-        if(list.error().type == dbapi::ApiError::KeyError)
-        {
-            this->clear();
-            return {};
-        }
+        if(list.error().type != dbapi::ApiError::KeyError)
+            return UserError::internalError("Subjects", "be loadded 'cause an unknown error", "Try again or contact support");
 
-        return UserError::internalError("Subjects", "be loaded 'cause an unknown error", "Try again or contact support");
+        this->clear();
+        return {};
     }
 
     this->beginResetModel();
@@ -37,30 +35,25 @@ UserError SubjectsOfTeacherModel::loadSubjects()
     for(auto subject : this->subjects)
         delete subject;
 
-    this->subjects.resize(list.subjects().count());
+    this->subjects.clear();
+    this->subjects.reserve(subjects.size());
 
-    for(int idx = 0; idx < this->subjects.size(); idx++)
-        this->subjects[idx] = new dbapi::Subject(list.subjects()[idx], this->connection);
-
-    UserError error;
-
-    for(auto subject : this->subjects)
+    for(auto subjectKey : list.subjects())
     {
-        if(not subject->load())
+        this->subjects.append(new dbapi::Subject(subjectKey, this->connection));
+
+        if(not this->subjects.back()->load())
         {
-            for(auto subject : this->subjects)
-                delete subject;
+            delete this->subjects.back();
+            this->subjects.pop_back();
+            this->endResetModel();
 
-            this->subjects.clear();
-
-            error = UserError::internalError("Subjects", "be loaded 'cause an unknown error", "Try again or contact support");
-
-            break;
+            return UserError::internalError("Subjects", "be loaded 'cause an unknown error", "Try again or contact support");
         }
     }
 
     this->endResetModel();
-    return error;
+    return {};
 }
 
 UserError SubjectsOfTeacherModel::appendSubject(const dbapi::Subject::Key &key)

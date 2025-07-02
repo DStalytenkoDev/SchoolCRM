@@ -1,3 +1,4 @@
+#include <variant>
 #include <QMessageBox>
 #include <SchoolApi/Classmate.h>
 #include "ClassStudentsModel.h"
@@ -89,8 +90,8 @@ UserError ClassesModel::removeClass(int index)
     ClassStudentsModel studentsModel(this);
     ClassSubjectsModel subjectsModel(this);
 
-    studentsModel.setClass(this->classes[index]->key());
-    subjectsModel.setClass(this->classes[index]->key());
+    studentsModel.setClass(grade->key());
+    subjectsModel.setClass(grade->key());
 
     if(studentsModel.loadAll().isError())
         return UserError::internalError("Class", "be removed 'cause an unknown error", "Try again or contact support");
@@ -120,6 +121,12 @@ UserError ClassesModel::removeClass(int index)
     }
 
     if(this->removeTeacher(index))
+    {
+        this->connection->rollback();
+        return UserError::internalError("Class", "be removed 'cause an unknown error", "Try again or contact support");
+    }
+
+    if(not grade->remove())
     {
         this->connection->rollback();
         return UserError::internalError("Class", "be removed 'cause an unknown error", "Try again or contact support");
@@ -155,17 +162,32 @@ UserError ClassesModel::changeHomeroomTeacher(int index, const dbapi::Person::Ke
     return {};
 }
 
-UserError ClassesModel::getHomeroomTeacher(int index)
+std::variant<dbapi::Person::Key, UserError> ClassesModel::getHomeroomTeacher(int index)
 {
+    assert((void("out of range"), index >= 0 and index < this->classes.size()));
+
+    auto teacher = this->findTeacher(index);
+
+    if(teacher == nullptr)
+        return UserError::internalError("Homeroom teacher", "be loaded 'cause an unknown error", "Try again or contact support");
+
+    auto key = teacher->key().person;
+    delete teacher;
+
+    return key;
 }
 
 dbapi::Class *ClassesModel::grade(const QModelIndex &index)
 {
+    assert((void("out of range"), index.row() >= 0 and index.row() < this->classes.size()));
+
     return this->classes[index.row()];
 }
 
 dbapi::Class *ClassesModel::grade(int row)
 {
+    assert((void("out of range"), row >= 0 and row < this->classes.size()));
+
     return this->classes[row];
 }
 
@@ -190,7 +212,17 @@ QVariant ClassesModel::data(const QModelIndex &index, int role) const
 
 void ClassesModel::clear()
 {
+    if(this->classes.size() == 0)
+        return;
 
+    this->beginResetModel();
+
+    for(auto grade : this->classes)
+        delete grade;
+
+    this->classes.clear();
+
+    this->endResetModel();
 }
 
 ClassesModel::~ClassesModel()

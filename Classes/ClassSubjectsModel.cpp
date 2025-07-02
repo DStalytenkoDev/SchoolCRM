@@ -7,58 +7,121 @@ ClassSubjectsModel::ClassSubjectsModel(QObject *parent)
 
 void ClassSubjectsModel::setConnection(dbapi::Connection *connection)
 {
+    assert((void("nullptr"), connection));
+
     this->connection = connection;
 }
 
-dbapi::ApiError ClassSubjectsModel::loadSubjects(const dbapi::Class::Key &key)
+void ClassSubjectsModel::setClass(const dbapi::Class::Key &key)
 {
-    dbapi::ClassSubjectsList list({key}, this->connection);
+    this->classKey = key;
+}
 
-    this->items.clear();
+UserError ClassSubjectsModel::loadAll()
+{
+    dbapi::ClassSubjectsList list({this->classKey}, this->connection);
 
-    list.load();
-
-    if(list.error().type != dbapi::ApiError::NoError)
+    if(not list.load())
+    {
         if(list.error().type != dbapi::ApiError::KeyError)
-            return list.error();
+            return UserError::internalError("Subjects", "be loadded 'cause an unknown error", "Try again or contact support");
 
-    int len = list.subjects().count();
-    dbapi::Subject subject(this->connection);
+        this->clear();
+        return {};
+    }
 
     this->beginResetModel();
-    this->items.resize(len);
 
-    for(int idx = 0; idx < len; idx++)
+    for(auto subject : this->subjects)
+        delete subject;
+
+    this->subjects.clear();
+    this->subjects.reserve(subjects.size());
+
+    for(auto subjectKey : list.subjects())
     {
-        subject.setKey(list.subjects()[idx]);
+        this->subjects.append(new dbapi::Subject(subjectKey, this->connection));
 
-        if(not subject.load())
+        if(not this->subjects.back()->load())
         {
-            this->endInsertRows();
-            return subject.error();
-        }
+            delete this->subjects.back();
+            this->subjects.pop_back();
+            this->endResetModel();
 
-        this->items[idx].key = subject.key();
-        this->items[idx].text = subject.name();
+            return UserError::internalError("Subjects", "be loaded 'cause an unknown error", "Try again or contact support");
+        }
     }
 
     this->endResetModel();
     return {};
 }
 
-dbapi::Subject::Key ClassSubjectsModel::subject(const QModelIndex &index)
+UserError ClassSubjectsModel::appendSubject(const dbapi::Subject::Key &key)
 {
-    return this->items[index.row()].key;
+    dbapi::ClassSubjectsList list({this->classKey}, this->connection);
+
+    if(not list.load())
+        return UserError::internalError("Subject", "be appended 'cause an unknown error", "Try again or contact support");
+
+    for(auto& subject : list.subjects())
+        if(subject == key)
+            return UserError::keyError("Subject", "be appended 'cause its already in the list");
+
+    list.appendSubject(key);
+    if(not list.store())
+        return UserError::internalError("Subject", "be appended 'cause an unknown error", "Try again or contact support");
+
+    auto subject = new dbapi::Subject(key, this->connection);
+
+    if(not subject->load())
+        subject->setName("_Error_value_");
+
+    this->beginInsertRows({}, this->subjects.size(), this->subjects.size());
+    this->subjects.append(subject);
+    this->endInsertRows();
+
+    return {};
 }
 
-dbapi::Subject::Key ClassSubjectsModel::subject(int row)
+UserError ClassSubjectsModel::removeSubject(int index)
 {
-    return this->items[row].key;
+    assert((void("out of range"), index > 0 && index < this->subjects.size()));
+
+    dbapi::ClassSubjectsList list({this->classKey}, this->connection);
+
+    auto subject = this->subjects[index];
+    list.appendSubject(subject->key());
+
+    if(not list.remove())
+        return UserError::internalError("Subject", "be removed 'cause an unknown error", "Try again or contact support");
+
+    this->beginRemoveRows({}, index, index);
+
+    delete subject;
+    this->subjects.remove(index);
+
+    this->endRemoveRows();
+
+    return {};
+}
+
+dbapi::Subject* ClassSubjectsModel::subject(const QModelIndex &index)
+{
+    assert((void("out of range"), index.row() > 0 && index.row() < this->subjects.size()));
+
+    return this->subjects[index.row()];
+}
+
+dbapi::Subject *ClassSubjectsModel::subject(int row)
+{
+    assert((void("out of range"), row > 0 && row < this->subjects.size()));
+
+    return this->subjects[row];
 }
 
 int ClassSubjectsModel::rowCount(const QModelIndex &parent) const
 {
-    return this->items.count();
+    return this->subjects.count();
 }
 
 QVariant ClassSubjectsModel::data(const QModelIndex &index, int role) const
@@ -69,28 +132,21 @@ QVariant ClassSubjectsModel::data(const QModelIndex &index, int role) const
     if(not index.isValid())
         return {};
 
-    if(index.row() >= this->items.count())
+    if(index.row() >= this->subjects.count())
         return {};
 
-    return this->items[index.row()].text;
+    return this->subjects[index.row()]->name();
 }
 
-void ClassSubjectsModel::insertRow(const dbapi::Subject &subject)
+void ClassSubjectsModel::clear()
 {
-    auto len = this->items.size();
+    if(this->subjects.size() == 0)
+        return;
 
-    beginInsertRows({}, len, len);
+    this->beginResetModel();
 
-    this->items.push_front({subject.name(), subject.key()});
+    for(auto subject : this->subjects)
+        delete subject;
 
-    endInsertRows();
-}
-
-void ClassSubjectsModel::removeRow(int row)
-{
-    beginRemoveRows({}, row, row);
-
-    this->items.remove(row);
-
-    endRemoveRows();
+    this->endResetModel();
 }

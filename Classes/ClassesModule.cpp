@@ -69,8 +69,8 @@ void ClassesModule::enterClassesNotLoaded()
     auto error = this->classesModel->loadAll();
     this->connection->close();
 
-    if(error.type != dbapi::ApiError::NoError)
-        return this->showInternalError();
+    if(error.isError())
+        return error.show(this);
 
     emit this->classesLoadedAre();
 }
@@ -93,10 +93,13 @@ void ClassesModule::enterClassesLoaded()
 
 void ClassesModule::enterClassSelected()
 {
+    this->classStudentsModel->setClass(this->currentClass()->key());
+    this->classSubjectsModel->setClass(this->currentClass()->key());
+
     if(not this->tryConnect())
     {
         emit this->dataError();
-        return this->abortConnection();
+        return;
     }
 
     if(not this->loadHomeroomTeacher())
@@ -117,6 +120,8 @@ void ClassesModule::enterClassSelected()
         return this->abortConnection();
     }
 
+    this->connection->close();
+
     // set gui
     this->ui->itemAdditionMenu->hide();
     this->ui->deleteItem->hide();
@@ -129,8 +134,6 @@ void ClassesModule::enterClassSelected()
     this->ui->tabWidget->setHidden(false);
 
     this->ui->verticalSpacer->changeSize(0, 10);
-
-    this->connection->close();
 }
 
 void ClassesModule::enterItemAdding()
@@ -565,34 +568,20 @@ void ClassesModule::abortConnection()
 
 bool ClassesModule::loadHomeroomTeacher()
 {
-    dbapi::ApiError error;
-    auto teachers = dbapi::Classmate::loadAll(this->connection, &error);
+    auto teacherKey = this->classesModel->getHomeroomTeacher(this->classFinder->currentIndex());
 
-    if(error.type != dbapi::ApiError::NoError)
+    if(teacherKey.index() == 1)
         return false;
 
-    auto grade = this->classesModel->grade(this->classFinder->currentIndex());
-    dbapi::Person::Key personKey;
+    auto error = this->personsModel->loadAll();
 
-    // find homeroom teacher and extract person key
-    for(auto teacher : teachers)
-    {
-        if(teacher->grade() == grade->key())
-            personKey = teacher->key().person;
-
-        delete teacher;
-    }
-
-    // load all persons
-    error = this->personsModel->loadAll();
-
-    if(error.type != dbapi::ApiError::NoError)
+    if(error.isError())
         return false;
 
     // match found person with a person in the model
     for(int index = 0; index < this->personsModel->rowCount(); index++)
     {
-        if(this->personsModel->person(index)->key() == personKey)
+        if(this->personsModel->person(index)->key() == std::get<dbapi::Person::Key>(teacherKey))
             this->teacherFinder->setCurrentIndex(index);
     }
 
@@ -601,10 +590,9 @@ bool ClassesModule::loadHomeroomTeacher()
 
 bool ClassesModule::loadStudentsList()
 {
-    auto grade = this->classesModel->grade(this->classFinder->currentIndex());
-    auto error = this->classStudentsModel->loadStudents(grade->key());
+    auto error = this->classStudentsModel->loadAll();
 
-    if(error.type != dbapi::ApiError::NoError)
+    if(error.isError())
         return false;
 
     return true;
@@ -612,25 +600,10 @@ bool ClassesModule::loadStudentsList()
 
 bool ClassesModule::loadSubjectsList()
 {
-    auto grade = this->classesModel->grade(this->classFinder->currentIndex());
-    auto error = this->classSubjectsModel->loadSubjects(grade->key());
+    auto error = this->classSubjectsModel->loadAll();
 
-    if(error.type != dbapi::ApiError::NoError)
+    if(error.isError())
         return false;
 
     return true;
 }
-
-//void ClassesModule::resetUi()
-//{
-//    this->classFinder->setDisabled(true);
-//    this->classDeletionAction->setDisabled(true);
-//
-//    this->teacherFinder->hide();
-//    this->ui->itemAdditionMenu->hide();
-//    this->ui->addItem->hide();
-//    this->ui->deleteItem->hide();
-//    this->ui->tabWidget->hide();
-//
-//    this->ui->verticalSpacer->changeSize(0, 10, QSizePolicy::Preferred, QSizePolicy::MinimumExpanding);
-//}
