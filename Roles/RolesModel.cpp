@@ -33,7 +33,7 @@ UserError RolesModel::loadAll()
 
 UserError RolesModel::removeRole(int index)
 {
-    bool indexInRange = index > 0 && index < this->roles.size();
+    bool indexInRange = index >= 0 && index < this->roles.size();
 
     assert((void("out of range"), indexInRange));
 
@@ -43,14 +43,7 @@ UserError RolesModel::removeRole(int index)
     auto role = this->roles[index];
 
     if(not role->remove())
-    {
-        UserError userError;
-
-        if(role->error().type == dbapi::ApiError::PolicyError)
-            return UserError::referenceError("Role", "be removed 'cause its related", "Try first removing objects are using certain role");
-        else
-            return UserError::internalError("Role", "be removed 'cause an unknown error", "Try again or contact support");
-    }
+        return UserError::referenceError("Role", "be removed 'cause its might be related", "Try first removing objects are using certain role");
 
     this->beginRemoveRows({}, index, index);
 
@@ -96,14 +89,14 @@ UserError RolesModel::createRole(const QString &name)
 
 dbapi::Role *RolesModel::role(int row)
 {
-    assert((void("out of range"), row >= this->roles.count()));
+    assert((void("out of range"), row >= 0 && row < this->roles.count()));
 
     return this->roles[row];
 }
 
 dbapi::Role* RolesModel::role(const QModelIndex &index)
 {
-    assert((void("out of range"), index.row() >= this->roles.count()));
+    assert((void("out of range"), index.row() >= 0 && index.row() < this->roles.count()));
 
     return this->roles[index.row()];
 }

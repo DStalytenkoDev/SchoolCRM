@@ -20,7 +20,7 @@ void UserError::show(QWidget *parent) const
 {
     auto box = this->createMessageBox(parent);
 
-    box->show();
+    box->exec();
 
     delete box;
 }
@@ -32,7 +32,7 @@ QMessageBox *UserError::formMessage(QWidget *parent) const
 
 UserError UserError::actionErrorTemplate(const QString &errorType, const QString &actionObject, const QString &failedAction, const QString &description)
 {
-    QString shortText = QString("%1: %2 can`t %2").arg(errorType, actionObject, failedAction);
+    QString shortText = QString("%1: %2 can`t %3").arg(errorType, actionObject, failedAction);
 
     return UserError("Error", shortText, description);
 }

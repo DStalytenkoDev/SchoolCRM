@@ -26,6 +26,8 @@ UserError ClassStudentsModel::loadAll()
     for(auto student : this->students)
         delete student;
 
+    this->students.clear();
+
     auto students = dbapi::Student::loadAll(this->connection, &error);
 
     this->students.reserve(students.size());
@@ -89,7 +91,7 @@ UserError ClassStudentsModel::appendStudent(const dbapi::Person::Key &key)
 
 UserError ClassStudentsModel::removeStudent(int index)
 {
-    assert((void("out of range"), index > 0 && index < this->students.size()));
+    assert((void("out of range"), index >= 0 && index < this->students.size()));
 
     if(not this->students[index]->remove())
     {
@@ -110,14 +112,14 @@ UserError ClassStudentsModel::removeStudent(int index)
 
 dbapi::Person* ClassStudentsModel::student(const QModelIndex &index)
 {
-    assert((void("out of range"), index.row() > 0 && index.row() < this->students.size()));
+    assert((void("out of range"), index.row() >= 0 && index.row() < this->students.size()));
 
     return this->students[index.row()];
 }
 
 dbapi::Person *ClassStudentsModel::student(int row)
 {
-    assert((void("out of range"), row > 0 && row < this->students.size()));
+    assert((void("out of range"), row >= 0 && row < this->students.size()));
 
     return this->students[row];
 }

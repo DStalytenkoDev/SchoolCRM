@@ -53,12 +53,13 @@ private:
     QStateMachine* stateMachine;
     QState* classesNotLoaded;
     QState* classesLoaded;
+
     QState* classSelected;
     QState* itemAdding;
-    QState* studentsSelected;
-    QState* subjectsSelected;
+    QState* studentSelected;
+    QState* subjectSelected;
 
-    QState* resetGroupState;
+    QState* resetGroup;
 
     dbapi::Connection* connection = nullptr;
 
@@ -66,14 +67,13 @@ private:
     void enterClassesLoaded();
     void enterClassSelected();
     void enterItemAdding();
-    void enterStudentsSelected();
-    void enterSubjectsSelected();
+    void enterItemSelected();
 
-    void handleSelectedSubjects();
-    void handleSelectedStudents();
+    void handleSelectedSubject();
+    void handleSelectedStudent();
 
-    void handleSubjectsDeletion();
-    void handleStudentsDeletion();
+    void handleSubjectDeletion();
+    void handleStudentDeletion();
 
     void handleSelectedTeacher();
     void handleChangedTab();
@@ -109,19 +109,14 @@ private:
     /// does not manage the connection
     bool loadSubjectsList();
 
-    /// does not manages the connection
-    bool deleteSubjects();
-    /// does not manages the connection
-    bool deleteStudents();
-
     private: signals:
         void reseted();
         void dataError();
         void classDeletedIs();
         void classesLoadedAre();
-        void itemsDeselectedAre();
-        void studentsSelectedAre();
-        void subjectsSelectedAre();
+        void itemDeselectedIs();
+        void studentSelectedIs();
+        void subjectSelectedIs();
 };
 
 

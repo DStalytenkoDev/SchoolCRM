@@ -44,7 +44,7 @@ void RolesModule::setupRolesList()
 {
     this->ui->rolesList->setModel(this->model);
     this->ui->rolesList->setSelectionBehavior(QAbstractItemView::SelectRows);
-    this->ui->rolesList->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    this->ui->rolesList->setSelectionMode(QAbstractItemView::SingleSelection);
 
     // handle selection
     connect(this->ui->rolesList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RolesModule::handleSelectedRole);
@@ -55,7 +55,8 @@ bool RolesModule::tryConnect()
     if(this->connection->open())
         return true;
 
-    UserError::connectionError("Command", "be executed 'cause connection to the server failed").show(this);
+    UserError::connectionError("Connection", "be established 'cause something went wrong", "Check credentials or internet connection, server might be down").show(this);
+
     return false;
 }
 

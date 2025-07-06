@@ -33,19 +33,12 @@ UserError PersonsModel::loadAll()
 
 UserError PersonsModel::removePerson(int index)
 {
-    assert((void("out of range"), index > 0 && index < this->persons.size()));
+    assert((void("out of range"), index >= 0 && index < this->persons.size()));
 
     auto person = this->persons[index];
 
     if(not person->remove())
-    {
-        UserError userError;
-
-        if(person->error().type == dbapi::ApiError::PolicyError)
-            return UserError::referenceError("Person", "be removed 'cause its related", "Try first removing objects are using certain person");
-        else
-            return UserError::internalError("Person", "be removed 'cause an unknown error", "Try again or contact support");
-    }
+        return UserError::referenceError("Person", "be removed 'cause its might be related", "Try first removing objects are using certain person");
 
     this->beginRemoveRows({}, index, index);
 
@@ -96,7 +89,7 @@ UserError PersonsModel::createPerson(const QString &firstName, const QString &se
 
 UserError PersonsModel::editPerson(int index, const QString &firstName, const QString &secondName, const QDate &birthday, const dbapi::Role::Key &role)
 {
-    assert((void("out of range"), index > 0 && index < this->persons.size()));
+    assert((void("out of range"), index >= 0 && index < this->persons.size()));
 
     auto person = this->persons[index];
 
@@ -131,14 +124,14 @@ UserError PersonsModel::editPerson(int index, const QString &firstName, const QS
 
 dbapi::Person *PersonsModel::person(const QModelIndex &index)
 {
-    assert((void("out of range"), index.row() > 0 && index.row() < this->persons.size()));
+    assert((void("out of range"), index.row() >= 0 && index.row() < this->persons.size()));
 
     return this->persons[index.row()];
 }
 
 dbapi::Person *PersonsModel::person(int row)
 {
-    assert((void("out of range"), row > 0 && row < this->persons.size()));
+    assert((void("out of range"), row >= 0 && row < this->persons.size()));
 
     return this->persons[row];
 }

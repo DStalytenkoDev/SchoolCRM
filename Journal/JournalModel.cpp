@@ -3,16 +3,22 @@
 
 JournalModel::JournalModel(QObject *parent)
     : QAbstractTableModel{parent}
-{}
+{
+    this->studentsModel = new ClassStudentsModel(this);
+}
 
 void JournalModel::setConnection(dbapi::Connection *connection)
 {
+    assert((void("nullptr"), connection));
+
     this->connection = connection;
+    this->studentsModel->setConnection(connection);
 }
 
 void JournalModel::setClass(const dbapi::Class::Key& key)
 {
     this->classKey = key;
+    this->studentsModel->setClass(key);
 }
 
 void JournalModel::setSubject(const dbapi::Subject::Key& key)
@@ -35,37 +41,33 @@ void JournalModel::setDateRange(const QDate &begin, const QDate &end)
         this->rangeEnd = end;
 }
 
-dbapi::ApiError JournalModel::load()
+UserError JournalModel::load()
 {
+    if(this->studentsModel->loadAll().isError())
+        return UserError::internalError("Journal", "be loadded 'cause something went wrong", "Try again or contact support");
+
     dbapi::ApiError error;
-    auto students = this->loadStudents(&error);
-
-    if(error.type != dbapi::ApiError::NoError)
-        return error;
-
     auto marks = dbapi::StudentMark::loadAll(this->connection, &error);
 
     if(error.type != dbapi::ApiError::NoError)
-    {
-        for(auto student : students) delete student;
-        return error;
-    }
+        return UserError::internalError("Journal", "be loadded 'cause something went wrong", "Try again or contact support");
 
     this->beginResetModel();
     this->freeAll();
 
     int futureColumnCount = this->rangeBegin.daysTo(this->rangeEnd);
-    int futureRowCount = students.size();
+    int futureRowCount = this->studentsModel->rowCount();
 
     if(futureRowCount == 0)
         futureColumnCount = 0;
 
     this->initTable(futureRowCount, futureColumnCount);
 
+    // assign indexies for each student by key
     QMap<int, int> grade;
 
-    for(int idx = 0; idx < students.size(); idx++)
-        grade.insert(students[idx]->key().id, idx);
+    for(int idx = 0; idx < futureRowCount; idx++)
+        grade.insert(this->studentsModel->student(idx)->key().id, idx);
 
     // filter
     for(auto mark : marks)
@@ -84,29 +86,22 @@ dbapi::ApiError JournalModel::load()
         this->marksTable[targetRow][targetColumn] = mark;
     }
 
-    this->students = std::move(students);
     this->endResetModel();
     return {};
 }
 
-dbapi::ApiError JournalModel::store(const QModelIndex& index, int value, const dbapi::Person::Key &teacher)
+UserError JournalModel::store(const QModelIndex& index, int value, const dbapi::Person::Key &teacher)
 {
-    if(not index.isValid())
-        return {dbapi::ApiError::KeyError, "inavlid index in Journal::store()"};
-
-    if(index.row() >= this->_rowCount)
-        return {dbapi::ApiError::KeyError, "inavlid index in Journal::store()"};
-
-    if(index.column() >= this->_columnCount)
-        return {dbapi::ApiError::KeyError, "inavlid index in Journal::store()"};
+    assert((void("index validity"), index.isValid()));
+    assert((void("index validity"), index.row() < this->_rowCount));
+    assert((void("index validity"), index.column() < this->_columnCount));
 
     dbapi::StudentMark* & cell = this->marksTable[index.row()][index.column()];
 
-    if(cell)
-        return {dbapi::ApiError::KeyError, "mark already exists Journal::store()"};
+    assert((void("cell freedom"), not cell));
 
     dbapi::StudentMark mark(this->connection);
-    mark.setStudent(this->students[index.row()]->key());
+    mark.setStudent(this->studentsModel->student(index.row())->key());
     mark.setDate(this->rangeBegin.addDays(index.column()));
     mark.setMark(value);
     mark.setTeacher(teacher);
@@ -114,7 +109,7 @@ dbapi::ApiError JournalModel::store(const QModelIndex& index, int value, const d
     mark.setType(this->type);
 
     if(not mark.store())
-        return mark.error();
+        return UserError::internalError("Mark", "be craeted 'cause something went wrong", "Try again or contact support");
 
     cell = new dbapi::StudentMark(mark);
     emit this->dataChanged(index, index, {Qt::DisplayRole});
@@ -122,20 +117,16 @@ dbapi::ApiError JournalModel::store(const QModelIndex& index, int value, const d
     return {};
 }
 
-dbapi::ApiError JournalModel::remove(const QItemSelection& selection)
+UserError JournalModel::remove(const QItemSelection& selection)
 {
     this->connection->transaction();
     dbapi::ApiError error;
 
     for(auto index : selection.indexes())
     {
-        if(	not index.isValid() or
-            index.row() >= this->_rowCount or
-            index.column() >= this->_columnCount)
-        {
-            error = {dbapi::ApiError::KeyError, "invalid indexes in Journal::remove()"};
-            break;
-        }
+        assert((void("index validity"), index.isValid()));
+        assert((void("index validity"), index.row() < this->_rowCount));
+        assert((void("index validity"), index.column() < this->_columnCount));
 
         auto mark = this->marksTable[index.row()][index.column()];
 
@@ -152,7 +143,7 @@ dbapi::ApiError JournalModel::remove(const QItemSelection& selection)
     if(error.type != dbapi::ApiError::NoError)
     {
         this->connection->rollback();
-        return error;
+        return UserError::internalError("Marks", "be removed 'cause something went wrong", "Try again or contact support");
     }
 
     this->connection->commit();
@@ -177,25 +168,18 @@ dbapi::ApiError JournalModel::remove(const QItemSelection& selection)
 
 dbapi::StudentMark *JournalModel::mark(const QModelIndex &index)
 {
-    if(not index.isValid())
-        return nullptr;
-
-    if(index.row() >= this->_rowCount)
-        return nullptr;
-
-    if(index.column() >= this->_columnCount)
-        return nullptr;
+    assert((void("index validity"), index.isValid()));
+    assert((void("index validity"), index.row() < this->_rowCount));
+    assert((void("index validity"), index.column() < this->_columnCount));
 
     return this->marksTable[index.row()][index.column()];
 }
 
 dbapi::StudentMark *JournalModel::mark(int row, int column)
 {
-    if(row >= this->_rowCount)
-        return nullptr;
-
-    if(column >= this->_columnCount)
-        return nullptr;
+    assert((void("index validity"), row < this->_rowCount));
+    assert((void("index validity"), column < this->_columnCount));
+    assert((void("index validity"), row >= 0 and column >= 0));
 
     return this->marksTable[row][column];
 }
@@ -253,39 +237,6 @@ JournalModel::~JournalModel()
     this->freeAll();
 }
 
-QList<dbapi::Person*> JournalModel::loadStudents(dbapi::ApiError* error)
-{
-    auto students = dbapi::Student::loadAll(this->connection, error);
-
-    if(error->type != dbapi::ApiError::NoError)
-        return {};
-
-    QList<dbapi::Person*> persons;
-    persons.reserve(100);
-
-    for(auto student : students)
-    {
-        if(student->grade() == this->classKey)
-        {
-            auto person = new dbapi::Person(student->key().person, this->connection);
-
-            if(not person->load())
-            {
-                delete person;
-                delete student;
-                continue;
-            }
-
-            persons.append(person);
-        }
-
-        delete student;
-    }
-
-    persons.squeeze();
-    return std::move(persons);
-}
-
 bool JournalModel::filterMark(dbapi::StudentMark *mark)
 {
     if(mark->subject() != this->subjectKey) return false;
@@ -315,9 +266,6 @@ void JournalModel::freeAll()
     for(auto& row : this->marksTable)
         for(auto mark : row)
             if(mark) delete mark;
-
-    for(auto student : this->students)
-        delete student;
 }
 
 QVariant JournalModel::verticalHeader(int row) const
@@ -325,7 +273,7 @@ QVariant JournalModel::verticalHeader(int row) const
     if(row < 0 or row >= this->_rowCount)
         return {};
 
-    auto student = this->students[row];
+    auto student = this->studentsModel->student(row);
 
     return QString("%1 %2").arg(student->firstName(), student->secondName());
 }

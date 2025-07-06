@@ -19,7 +19,7 @@ JournalModule::JournalModule(QWidget *parent)
     this->classesModel = new ClassesModel(this);
     this->classStudentsModel = new ClassStudentsModel(this);
     this->classSubjectsModel = new ClassSubjectsModel(this);
-    this->personsModel = new PersonsModel(this);
+    this->personsModel = new FakePersonsModel(this);
 
     this->markCreatingDialog = new MarkCreatingDialog(this);
     this->markCreatingDialog->setTeachersModel(this->personsModel);
@@ -39,7 +39,6 @@ void JournalModule::setConnection(dbapi::Connection *connection)
     this->classesModel->setConnection(connection);
     this->classStudentsModel->setConnection(connection);
     this->classSubjectsModel->setConnection(connection);
-    this->personsModel->setConnection(connection);
 }
 
 void JournalModule::prepare()
@@ -80,8 +79,8 @@ void JournalModule::enterClassesNotLoadedState()
     auto error = this->classesModel->loadAll();
     this->connection->close();
 
-    if(error.type != dbapi::ApiError::NoError)
-        return this->showInternalError();
+    if(error.isError())
+        return error.show(this);
 
     emit this->setClassesLoadedState();
 }
@@ -94,14 +93,16 @@ void JournalModule::enterClassesLoadedState()
 
 void JournalModule::enterClassSelectedState()
 {
+    this->classSubjectsModel->setClass(this->currentClass()->key());
+
     if(not this->tryConnect())
         return;
 
-    auto error = this->classSubjectsModel->loadSubjects(this->currentClass()->key());
+    auto error = this->classSubjectsModel->loadAll();
     this->connection->close();
 
-    if(error.type != dbapi::ApiError::NoError)
-        return this->showInternalError();
+    if(error.isError())
+        return error.show(this);
 
     this->classFinder->setHidden(false);
     this->subjectFinder->setHidden(false);
@@ -171,13 +172,13 @@ void JournalModule::handleMarksDeleting()
     auto error = this->journalModel->remove(this->ui->journal->selectionModel()->selection());
     this->connection->close();
 
-    if(error.type != dbapi::ApiError::NoError)
+    if(error.isError())
     {
         emit this->setKeySelectedState();
-        return this->showInternalError();
+        return error.show(this);
     }
 
-    QMessageBox::information(this, "Deletion", "All selected item had been deleted");
+    QMessageBox::information(this, "Info", "All selected item had been deleted");
     emit this->setKeySelectedState();
 }
 
@@ -189,15 +190,15 @@ void JournalModule::handleJournalLoading()
     auto subject = this->classSubjectsModel->subject(this->subjectFinder->currentIndex());
 
     this->journalModel->setClass(this->currentClass()->key());
-    this->journalModel->setSubject(subject);
+    this->journalModel->setSubject(subject->key());
     this->journalModel->setType(this->markTypeFinder->getType());
     this->journalModel->setDateRange(this->ui->beginDate->date(), this->ui->endDate->date());
 
     auto error = this->journalModel->load();
     this->connection->close();
 
-    if(error.type != dbapi::ApiError::NoError)
-        return this->showInternalError();
+    if(error.isError())
+        return error.show(this);
 }
 
 void JournalModule::handleJournalAndTeachersLoading()
@@ -208,17 +209,23 @@ void JournalModule::handleJournalAndTeachersLoading()
     auto subject = this->classSubjectsModel->subject(this->subjectFinder->currentIndex());
 
     this->journalModel->setClass(this->currentClass()->key());
-    this->journalModel->setSubject(subject);
+    this->journalModel->setSubject(subject->key());
     this->journalModel->setType(this->markTypeFinder->getType());
     this->journalModel->setDateRange(this->ui->beginDate->date(), this->ui->endDate->date());
 
     auto error = this->journalModel->load();
 
-    if(error.type != dbapi::ApiError::NoError)
-        return this->abortConnection();
+    if(error.isError())
+    {
+        this->connection->close();
+        return error.show(this);
+    }
 
     if(not this->loadCompatibleTeachers())
-        return this->abortConnection();
+    {
+        this->connection->close();
+        return UserError::internalError("Journal", "be loadded 'cause something went wrong", "Try again or contact support").show(this);
+    }
 
     this->connection->close();
 }
@@ -243,7 +250,7 @@ void JournalModule::completeMarkCreating()
     if(teacherIndex.row() < 0)
         return this->showInternalError();
 
-    auto teacherKey = this->personsModel->person(teacherIndex)->key();
+    auto teacherKey = this->personsModel->person(teacherIndex.row());
 
     if(not this->tryConnect())
         return;
@@ -251,10 +258,10 @@ void JournalModule::completeMarkCreating()
     auto error = this->journalModel->store(this->selectedMark, this->markCreatingDialog->value(), teacherKey);
     this->connection->close();
 
-    if(error.type != dbapi::ApiError::NoError)
-        return this->showInternalError();
+    if(error.isError())
+        return error.show(this);
 
-    QMessageBox::information(this, "Creating", "New mark was created");
+    QMessageBox::information(this, "Info", "New mark was created");
 }
 
 void JournalModule::setupFinders()
@@ -352,20 +359,14 @@ bool JournalModule::tryConnect()
     if(this->connection->open())
         return true;
 
-    this->showInternalError();
+    UserError::connectionError("Connection", "be established 'cause something went wrong", "Check credentials or internet connection, server might be down").show(this);
 
     return false;
 }
 
 void JournalModule::showInternalError()
 {
-    QMessageBox::critical(this, "Internal error", "Please check your connection to the database");
-}
-
-void JournalModule::abortConnection()
-{
-    this->connection->close();
-    this->showInternalError();
+    UserError::internalError("Command", "be executed 'cause something went wrong", "Try again or contact support").show(this);
 }
 
 dbapi::Class *JournalModule::currentClass()
@@ -386,18 +387,17 @@ bool JournalModule::loadCompatibleTeachers()
     if(error.type != dbapi::ApiError::NoError)
         return false;
 
+    this->personsModel->clear();
+    dbapi::Subject::Key key(this->classSubjectsModel->subject(this->subjectFinder->currentIndex())->key());
+
     for(auto list : lists)
     {
-        dbapi::Subject::Key key(this->classSubjectsModel->subject(this->subjectFinder->currentIndex()));
-
-        this->personsModel->clear();
-
         if(list->subjects().contains(key))
         {
             dbapi::Person person(list->key().person, this->connection);
 
             if(person.load())
-                this->personsModel->insertRow(0, person);
+                this->personsModel->createPerson(person.key(), person.firstName(), person.secondName());
         }
 
         delete list;
