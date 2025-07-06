@@ -34,7 +34,7 @@ UserError SubjectsModel::loadAll()
 
 UserError SubjectsModel::removeSubject(int index)
 {
-    bool indexInRange = index > 0 && index < this->subjects.size();
+    bool indexInRange = index >= 0 && index < this->subjects.size();
 
     assert((void("out of range"), indexInRange));
 
@@ -44,14 +44,7 @@ UserError SubjectsModel::removeSubject(int index)
     auto subject = this->subjects[index];
 
     if(not subject->remove())
-    {
-        UserError userError;
-
-        if(subject->error().type == dbapi::ApiError::PolicyError)
-            return UserError::referenceError("Subject", "be removed 'cause its related", "Try first removing objects are using certain subject");
-        else
-            return UserError::internalError("Subject", "be removed 'cause an unknown error", "Try again or contact support");
-    }
+        return UserError::referenceError("Subject", "be removed 'cause its might be related", "Try first removing objects are using certain subject");
 
     this->beginRemoveRows({}, index, index);
 
@@ -97,14 +90,14 @@ UserError SubjectsModel::createSubject(const QString &name)
 
 dbapi::Subject *SubjectsModel::subject(const QModelIndex &index)
 {
-    assert((void("out of range"), index.row() >= this->subjects.count()));
+    assert((void("out of range"), index.row() >= 0 && index.row() < this->subjects.count()));
 
     return this->subjects[index.row()];
 }
 
 dbapi::Subject *SubjectsModel::subject(int row)
 {
-    assert((void("out of range"), row >= this->subjects.count()));
+    assert((void("out of range"), row >= 0 && row < this->subjects.count()));
 
     return this->subjects[row];
 }

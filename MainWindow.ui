@@ -96,15 +96,15 @@
     <item>
      <layout class="QVBoxLayout" name="centralLayout">
       <property name="sizeConstraint">
-       <enum>QLayout::SizeConstraint::SetMinimumSize</enum>
+       <enum>QLayout::SetMinimumSize</enum>
       </property>
       <item>
        <widget class="QFrame" name="homeFrame">
         <property name="frameShape">
-         <enum>QFrame::Shape::StyledPanel</enum>
+         <enum>QFrame::StyledPanel</enum>
         </property>
         <property name="frameShadow">
-         <enum>QFrame::Shadow::Raised</enum>
+         <enum>QFrame::Raised</enum>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
@@ -118,7 +118,7 @@
             <string>Home page</string>
            </property>
            <property name="alignment">
-            <set>Qt::AlignmentFlag::AlignCenter</set>
+            <set>Qt::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -142,22 +142,34 @@
     <property name="title">
      <string>File</string>
     </property>
-   </widget>
-   <widget class="QMenu" name="menuEdit">
-    <property name="title">
-     <string>Edit</string>
-    </property>
+    <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
     </property>
+    <addaction name="actionAbout"/>
+    <addaction name="actionHelp"/>
    </widget>
    <addaction name="menuFile"/>
-   <addaction name="menuEdit"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+  <action name="actionHelp">
+   <property name="text">
+    <string>Help</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

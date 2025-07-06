@@ -85,7 +85,7 @@ UserError ClassSubjectsModel::appendSubject(const dbapi::Subject::Key &key)
 
 UserError ClassSubjectsModel::removeSubject(int index)
 {
-    assert((void("out of range"), index > 0 && index < this->subjects.size()));
+    assert((void("out of range"), index >= 0 && index < this->subjects.size()));
 
     dbapi::ClassSubjectsList list({this->classKey}, this->connection);
 
@@ -107,14 +107,14 @@ UserError ClassSubjectsModel::removeSubject(int index)
 
 dbapi::Subject* ClassSubjectsModel::subject(const QModelIndex &index)
 {
-    assert((void("out of range"), index.row() > 0 && index.row() < this->subjects.size()));
+    assert((void("out of range"), index.row() >= 0 && index.row() < this->subjects.size()));
 
     return this->subjects[index.row()];
 }
 
 dbapi::Subject *ClassSubjectsModel::subject(int row)
 {
-    assert((void("out of range"), row > 0 && row < this->subjects.size()));
+    assert((void("out of range"), row >= 0 && row < this->subjects.size()));
 
     return this->subjects[row];
 }

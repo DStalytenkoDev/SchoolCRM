@@ -33,6 +33,13 @@ Main widgets called modules. They just swicth each other 'cause user interaction
 **Or just use some already compiled stuff for the release if it exists))**
 
 ## Releases
+### v1.4.2-beta
+uses v2.0.0 of the API  
+bug fix  
+new error system  
+new connection manager  
+models hold on all data work  
+multi-selection in item based entities is deprecated
 ### v1.1.2
 uses v2.0.0 of the API  
 patched bugs

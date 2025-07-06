@@ -83,7 +83,7 @@ UserError ClassesModel::createClass(const QString &name, const dbapi::Person::Ke
 
 UserError ClassesModel::removeClass(int index)
 {
-    assert((void("out of range"), index > 0 && index < this->classes.size()));
+    assert((void("out of range"), index >= 0 && index < this->classes.size()));
 
     auto grade = this->classes[index];
 
@@ -139,7 +139,7 @@ UserError ClassesModel::removeClass(int index)
 
 UserError ClassesModel::changeHomeroomTeacher(int index, const dbapi::Person::Key &homeroomTeacher)
 {
-    assert((void("out of range"), index > 0 && index < this->classes.size()));
+    assert((void("out of range"), index >= 0 && index < this->classes.size()));
 
     if(not this->connection->transaction())
         return UserError::internalError("Homeroom teacher", "be changed 'cause an unknown error", "Try again or contact support");
@@ -261,4 +261,6 @@ bool ClassesModel::removeTeacher(int index)
 
     if(not teacher->remove())
         return false;
+
+    return true;
 }

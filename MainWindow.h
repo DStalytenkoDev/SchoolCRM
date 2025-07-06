@@ -4,7 +4,8 @@
 
 #include <QMainWindow>
 #include <QTreeWidget>
-#include "AuthorizationDialog.h"
+#include "AuthorizationWindow.h"
+#include "Menu/AboutDialog.h"
 #include "Roles/RolesModule.h"
 #include "Subjects/SubjectsModule.h"
 #include "Persons/PersonsModule.h"
@@ -30,9 +31,13 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    AuthorizationDialog* authorizationDialog;
+    AuthorizationWindow* authorizationWindow;
 
-    /// modules
+    // menu
+    AboutDialog* aboutDialog;
+
+
+    // modules
     RolesModule* roles;
     SubjectsModule* subjects;
     PersonsModule* persons;
@@ -42,14 +47,14 @@ private:
 
     QWidget* lastModule = nullptr;
 
-    dbapi::Connection connection;
-
     void manageLeftBarActions(QTreeWidgetItem* item, int column);
 
     void initAuthorization();
-    void completeAuthorization(int code);
 
     void swapMainWidget(QWidget* newWidget);
+
+    void showAbout();
+    void showHelp();
 };
 
 

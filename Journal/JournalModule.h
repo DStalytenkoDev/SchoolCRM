@@ -10,7 +10,7 @@
 #include "../Classes/ClassStudentsModel.h"
 #include "../Classes/ClassSubjectsModel.h"
 #include "../Classes/ClassesModel.h"
-#include "../Persons/PersonsModel.h"
+#include "FakePersonsModel.h"
 
 #include "../ComboBoxFinderView.h"
 #include "MarkCreatingDialog.h"
@@ -49,7 +49,7 @@ private:
     ClassesModel* classesModel;
     ClassStudentsModel* classStudentsModel;
     ClassSubjectsModel* classSubjectsModel;
-    PersonsModel* personsModel;
+    FakePersonsModel* personsModel;
 
     QStateMachine* stateMachine;
     QState* classesNotLoaded;
@@ -91,8 +91,6 @@ private:
     bool tryConnect();
     /// shows generall error
     void showInternalError();
-    /// closes connection and shows generall error
-    void abortConnection();
     /// if not selected returns nullptr
     dbapi::Class* currentClass();
 

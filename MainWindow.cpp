@@ -1,9 +1,7 @@
 #include <QMessageBox>
-#include <QTimer>
-
+#include "Menu/AboutDialog.h"
 #include "MainWindow.h"
 #include "./ui_MainWindow.h"
-#include "AuthorizationDialog.h"
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -11,11 +9,17 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    this->setWindowTitle("School CRM");
+
+    this->aboutDialog = new AboutDialog(this);
+
+    // menu
+    connect(this->ui->actionAbout, &QAction::triggered, this, &MainWindow::showAbout);
+    connect(this->ui->actionHelp, &QAction::triggered, this, &MainWindow::showHelp);
+    connect(this->ui->actionExit, &QAction::triggered, this, &MainWindow::close);
 
     // autorization dialog
-    this->authorizationDialog = new AuthorizationDialog(this);
-    this->authorizationDialog->setTrustedConnection(true);
-    connect(this->authorizationDialog, &QDialog::finished, this, &MainWindow::completeAuthorization);
+    this->authorizationWindow = new AuthorizationWindow(this);
 
     // left menu
     connect(this->ui->treeWidget, &QTreeWidget::itemClicked, this, &MainWindow::manageLeftBarActions);
@@ -23,34 +27,35 @@ MainWindow::MainWindow(QWidget *parent)
     // persons
     this->persons = new PersonsModule(this);
     this->persons->hide();
-    this->persons->setConnection(&this->connection);
+    this->persons->setConnection(this->authorizationWindow->getConnection());
 
     // roles
     this->roles = new RolesModule(this);
     this->roles->hide();
-    this->roles->setConnection(&this->connection);
+    this->roles->setConnection(this->authorizationWindow->getConnection());
 
     // subjects
     this->subjects = new SubjectsModule(this);
     this->subjects->hide();
-    this->subjects->setConnection(&this->connection);
+    this->subjects->setConnection(this->authorizationWindow->getConnection());
 
     this->subjectsOfTeacherModule = new SubjectsOfTeacherModule(this);
     this->subjectsOfTeacherModule->hide();
-    this->subjectsOfTeacherModule->setConnection(&this->connection);
+    this->subjectsOfTeacherModule->setConnection(this->authorizationWindow->getConnection());
 
     // classes
     this->classes = new ClassesModule(this);
     this->classes->hide();
-    this->classes->setConnection(&this->connection);
+    this->classes->setConnection(this->authorizationWindow->getConnection());
 
     // journal
     this->journal = new JournalModule(this);
     this->journal->hide();
-    this->journal->setConnection(&this->connection);
+    this->journal->setConnection(this->authorizationWindow->getConnection());
 
     // home page (installed by the designer)
     this->lastModule = this->ui->homeFrame;
+
 }
 
 MainWindow::~MainWindow()
@@ -98,39 +103,7 @@ void MainWindow::manageLeftBarActions(QTreeWidgetItem *item, int column)
 
 void MainWindow::initAuthorization()
 {
-    this->authorizationDialog->show();
-}
-
-void MainWindow::completeAuthorization(int code)
-{
-    if(code == QDialog::Rejected)
-        return;
-
-    this->connection.setDatabaseName(this->authorizationDialog->databaseName());
-    this->connection.setServerName(this->authorizationDialog->serverName());
-
-    this->connection.setTrustedConnection(this->authorizationDialog->isTrustedConnection());
-
-    if(this->authorizationDialog->isTrustedConnection())
-    {
-        this->connection.setUserName(this->authorizationDialog->userName());
-        this->connection.setPassword(this->authorizationDialog->password());
-    }
-
-    this->ui->statusbar->showMessage("Connecting in progress...");
-
-    bool opened = this->connection.open();
-
-    this->ui->statusbar->clearMessage();
-
-    if(not opened)
-    {
-        this->ui->statusbar->showMessage("Connecting failed");
-        return;
-    }
-
-    this->ui->statusbar->showMessage("Server is connected");
-    this->connection.close();
+    this->authorizationWindow->show();
 }
 
 void MainWindow::swapMainWidget(QWidget *newWidget)
@@ -148,4 +121,14 @@ void MainWindow::swapMainWidget(QWidget *newWidget)
 
     newWidget->setHidden(false);
     this->lastModule = newWidget;
+}
+
+void MainWindow::showAbout()
+{
+    this->aboutDialog->show();
+}
+
+void MainWindow::showHelp()
+{
+    QMessageBox::information(this, "Help", "Some help eg. link to git issues...");
 }

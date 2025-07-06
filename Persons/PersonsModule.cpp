@@ -106,7 +106,7 @@ bool PersonsModule::tryConnect()
     if(this->connection->open())
         return true;
 
-    UserError::connectionError("Command", "be executed 'cause connection to the server failed").show(this);
+    UserError::connectionError("Connection", "be established 'cause something went wrong", "Check credentials or internet connection, server might be down").show(this);
 
     return false;
 }

@@ -4,8 +4,9 @@
 
 #include <QAbstractTableModel>
 #include <SchoolApi/StudentMark.h>
-#include <SchoolApi/Student.h>
 #include <QItemSelection>
+#include "UserError.h"
+#include "Classes/ClassStudentsModel.h"
 
 
 class JournalModel : public QAbstractTableModel
@@ -20,9 +21,9 @@ public:
     void setType(const dbapi::StudentMark::Type& type);
     void setDateRange(const QDate& begin, const QDate& end);
 
-    dbapi::ApiError load();
-    dbapi::ApiError store(const QModelIndex& index, int value, const dbapi::Person::Key& teacher);
-    dbapi::ApiError remove(const QItemSelection& selection);
+    UserError load();
+    UserError store(const QModelIndex& index, int value, const dbapi::Person::Key& teacher);
+    UserError remove(const QItemSelection& selection);
 
     dbapi::StudentMark* mark(const QModelIndex& index);
     dbapi::StudentMark* mark(int row, int column);
@@ -35,7 +36,7 @@ public:
     ~JournalModel();
 
 private:
-    QList<dbapi::Person*> students;
+    ClassStudentsModel* studentsModel;
     QList<QList<dbapi::StudentMark*>> marksTable;
 
     int _rowCount = 0;

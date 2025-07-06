@@ -31,7 +31,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ComboBoxFinderView.h
         ComboBoxFinderView.cpp
 
-        AuthorizationDialog.h AuthorizationDialog.cpp AuthorizationDialog.ui
+
 
         Persons/PersonsModule.h Persons/PersonsModule.cpp Persons/PersonsModule.ui
         Persons/PersonWidget.h Persons/PersonWidget.cpp Persons/PersonWidget.ui
@@ -59,12 +59,15 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Journal/JournalModel.h Journal/JournalModel.cpp
         Journal/JournalModule.h Journal/JournalModule.cpp Journal/JournalModule.ui
         Journal/MarkCreatingDialog.h Journal/MarkCreatingDialog.cpp Journal/MarkCreatingDialog.ui
+        Journal/FakePersonsModel.h Journal/FakePersonsModel.cpp
 
         TransitionFactrory.h
         readme.md
 
         UserError.h
         UserError.cpp
+        AuthorizationWindow.h AuthorizationWindow.cpp AuthorizationWindow.ui
+        Menu/AboutDialog.h Menu/AboutDialog.cpp Menu/AboutDialog.ui
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET SchoolCRM APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
