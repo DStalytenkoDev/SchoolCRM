@@ -3,10 +3,10 @@
 
 
 #include <QWidget>
-#include <QProgressDialog>
 #include <QThread>
 #include <QMutex>
 #include <QTimer>
+#include <QStateMachine>
 #include <SchoolApi/Connection.h>
 
 
@@ -47,24 +47,36 @@ public:
 private:
     Ui::AuthorizationWindow *ui;
 
-    QProgressDialog* progressDialog;
+    dbapi::Connection connection;
+
     QTimer* timer;
     int counter = 0;
-
-    OpenConnectionWorker* openConnectionWorker;
-    QMutex mutex;
 
     static const int TIMER_INTERVAL = 150;
     static const int TIMER_DURATION = TIMER_INTERVAL * 70;
 
-    void initConnection();
-    void completeConnection(bool isConnected);
+    OpenConnectionWorker* openConnectionWorker;
+    QMutex mutex;
+
+    QStateMachine* stateMachine;
+
+    QState* credentialsEdition;
+    QState* connectionAttempt;
+    QState* DBConnected;
+
+    void enterCredentialsEdition();
+    void enterConnectionAttempt();
+    void enterDBConnected();
+
+    void completeConnectionAttempt(bool isConnected);
 
     void updateProgressBar();
+    void setupStateMachine();
 
-    void updateAuthUi();
-
-    dbapi::Connection connection;
+private: signals:
+    void connectedIs();
+    void failedIs();
+    void credentialsInvalidAre();
 };
 
 
