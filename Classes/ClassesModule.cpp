@@ -234,7 +234,7 @@ void ClassesModule::handleSelectedTeacher()
     this->connection->close();
 
     if(error.isError())
-        error.show(this);
+        return error.show(this);
 
     QMessageBox::information(this, "Info", "Teacher was changed");
 }

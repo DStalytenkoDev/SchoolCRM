@@ -39,7 +39,7 @@
      <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
-        <enum>Qt::Orientation::Horizontal</enum>
+        <enum>Qt::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -52,14 +52,14 @@
      <item>
       <widget class="QPushButton" name="addSubject">
        <property name="text">
-        <string>Add subject</string>
+        <string>Add</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="deleteSubject">
        <property name="text">
-        <string>Delete subject</string>
+        <string>Del</string>
        </property>
       </widget>
      </item>

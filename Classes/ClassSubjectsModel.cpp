@@ -68,7 +68,7 @@ UserError ClassSubjectsModel::appendSubject(const dbapi::Subject::Key &key)
             return UserError::keyError("Subject", "be appended 'cause its already in the list");
 
     list.appendSubject(key);
-    if(not list.store())
+    if(not list.update())
         return UserError::internalError("Subject", "be appended 'cause an unknown error", "Try again or contact support");
 
     auto subject = new dbapi::Subject(key, this->connection);
@@ -147,6 +147,8 @@ void ClassSubjectsModel::clear()
 
     for(auto subject : this->subjects)
         delete subject;
+
+    this->subjects.clear();
 
     this->endResetModel();
 }

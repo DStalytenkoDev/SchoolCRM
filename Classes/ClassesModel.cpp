@@ -151,6 +151,7 @@ UserError ClassesModel::changeHomeroomTeacher(int index, const dbapi::Person::Ke
     }
 
     dbapi::Classmate teacher({homeroomTeacher}, this->connection);
+    teacher.setGrade(this->classes[index]->key());
 
     if(not teacher.store())
     {
