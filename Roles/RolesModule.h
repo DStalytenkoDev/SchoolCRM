@@ -3,7 +3,9 @@
 
 
 #include <QWidget>
+
 #include <QItemSelection>
+#include <QStateMachine>
 
 #include <SchoolApi/Role.h>
 
@@ -30,12 +32,26 @@ public:
 
 private:
     Ui::RolesModule *ui;
+
     RoleCreationDialog* roleCreationDialog = nullptr;
     ComboBoxFinderView* roleFinder = nullptr;
 
     RolesModel* model = nullptr;
+    QSortFilterProxyModel* proxyModel;
 
     dbapi::Connection* connection = nullptr;
+
+    QStateMachine* stateMachine;
+    QState* updateGroup;
+    QState* rolesNotLoaded;
+    QState* rolesLoaded;
+    QState* itemSelected;
+    QState* searching;
+
+    void enterRolesNotLoaded();
+    void enterRolesLoaded();
+    void enterItemSelected();
+    void enterSearching();
 
     void handleFoundRole(QModelIndex index);
     void handleSelectedRole();
@@ -45,12 +61,21 @@ private:
     void initRoleCreation();
     void completeRoleCreation();
 
-    void handleRolesLoading();
+    void completeSearching();
+    void abortSearching();
+    void handleSearching();
 
     void setupRoleFinder();
     void setupRolesList();
+    void setupStateMachine();
 
     bool tryConnect();
+
+    void showEvent(QShowEvent* event) override;
+
+private: signals:
+    void itemSelectedIs();
+    void rolesLoadedAre();
 };
 
 

@@ -19,7 +19,7 @@ Main widgets called modules. They just swicth each other 'cause user interaction
 - The Journal
 
 ### Stack used
-- The SchoolDatabaseApi project [Git link](https://github.com/DStalytenkoDev/SchoolDatabaseApi.git)
+- The SchoolDatabaseApi project [DStalytenkoDev/SchoolDatabaseApi.git](https://github.com/DStalytenkoDev/SchoolDatabaseApi.git)
 - Qt Framework
 
 ### Build guide
@@ -28,24 +28,16 @@ Main widgets called modules. They just swicth each other 'cause user interaction
 3. Do auto confiuration with Qt Creator and GCC or MSVC compiler
 4. build
 
----
+### Contribute
+- Any big or unfinished changes should go through  `dev`  branch
+- When anything from  `dev`  seems working it should migrate to  `beta`  branch
+- When  `beta`  becomes stable it migrates to  `master`  branch
+- `master`  branch should be instantly affected only by major or minor updates or critical patches
 
-**Or just use some already compiled stuff for the release if it exists))**
 
-## Releases
-### v1.4.2-beta
-uses v2.0.0 of the API  
-bug fix  
-new error system  
-new connection manager  
-models hold on all data work  
-multi-selection in item based entities is deprecated
-### v1.1.2
-uses v2.0.0 of the API  
-patched bugs
-### v1.1.1
-uses v2.0.0 of the API  
-patched bugs  
-changed configure and build method
-### v1.0.0
-uses v1.0.0 of the API
+> **Any push to  `master`  branch is implicit realese**  
+> **`beta`  branch should be in one instance**  
+
+> in file **/version_log** should be written the very last version for the branch  
+> **tag** should be craeted by the minor update or by the contributor`s judgement  
+> **tag** should not having a ***dev, beta or prod*** attributes in its name
