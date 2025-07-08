@@ -18,15 +18,9 @@
     <layout class="QHBoxLayout" name="menuLayout">
      <item>
       <widget class="QLineEdit" name="searchRole">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
        <property name="minimumSize">
         <size>
-         <width>150</width>
+         <width>200</width>
          <height>0</height>
         </size>
        </property>
@@ -52,14 +46,14 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="loadAllButton">
+      <widget class="QPushButton" name="updateRoles">
        <property name="text">
-        <string>Load All</string>
+        <string>Update</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="addRole">
+      <widget class="QPushButton" name="createRole">
        <property name="text">
         <string>Create</string>
        </property>
@@ -69,6 +63,13 @@
       <widget class="QPushButton" name="deleteRole">
        <property name="text">
         <string>Del</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="abort">
+       <property name="text">
+        <string>Abort</string>
        </property>
       </widget>
      </item>

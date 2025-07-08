@@ -1,6 +1,7 @@
+#include <QMessageBox>
 #include "RolesModule.h"
 #include "ui_RolesModule.h"
-#include <QMessageBox>
+#include "TransitionFactrory.h"
 
 RolesModule::RolesModule(QWidget *parent)
     : QWidget(parent)
@@ -8,36 +9,19 @@ RolesModule::RolesModule(QWidget *parent)
 {
     ui->setupUi(this);
 
-    this->ui->deleteRole->hide();
-
     this->model = new RolesModel(this);
+    this->proxyModel = new QSortFilterProxyModel(this);
 
     this->setupRoleFinder();
     this->setupRolesList();
-
-    // handle deleting
-    connect(this->ui->deleteRole, &QPushButton::clicked, this, &RolesModule::handleRoleDeletion);
-
-    // handle creation
-    connect(this->ui->addRole, &QPushButton::clicked, this, &RolesModule::initRoleCreation);
-
-    // handle load all
-    connect(this->ui->loadAllButton, &QPushButton::clicked, this, &RolesModule::handleRolesLoading);
+    this->setupStateMachine();
 }
 
 void RolesModule::setupRoleFinder()
 {
-    this->roleFinder = new ComboBoxFinderView(this);
-
-    auto layout = this->ui->menuLayout->replaceWidget(this->ui->searchRole, this->roleFinder);
-    this->ui->searchRole->hide();
-
-    delete layout;
-
-    this->roleFinder->setModel(this->model);
-
-    // handle searching
-    connect(this->roleFinder, &ComboBoxFinderView::foundItem, this, &RolesModule::handleFoundRole);
+    this->proxyModel->setSourceModel(this->model);
+    this->proxyModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
+    this->proxyModel->setFilterKeyColumn(0);
 }
 
 void RolesModule::setupRolesList()
@@ -45,9 +29,38 @@ void RolesModule::setupRolesList()
     this->ui->rolesList->setModel(this->model);
     this->ui->rolesList->setSelectionBehavior(QAbstractItemView::SelectRows);
     this->ui->rolesList->setSelectionMode(QAbstractItemView::SingleSelection);
+}
 
-    // handle selection
-    connect(this->ui->rolesList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RolesModule::handleSelectedRole);
+void RolesModule::setupStateMachine()
+{
+    this->stateMachine = new QStateMachine(this);
+
+    this->rolesLoaded = new QState(this->stateMachine);
+    this->rolesNotLoaded = new QState(this->stateMachine);
+    this->itemSelected = new QState(this->stateMachine);
+    this->searching = new QState(this->stateMachine);
+
+    this->stateMachine->setInitialState(this->rolesNotLoaded);
+
+    connect(this->rolesNotLoaded, &QState::entered, this, &RolesModule::enterRolesNotLoaded);
+    this->rolesNotLoaded->addTransition(this, &RolesModule::rolesLoadedAre, this->rolesLoaded);
+    this->rolesNotLoaded->addTransition(this->ui->updateRoles, &QPushButton::clicked, this->rolesNotLoaded);
+
+    connect(this->rolesLoaded, &QState::entered, this, &RolesModule::enterRolesLoaded);
+    this->rolesLoaded->addTransition(this, &RolesModule::itemSelectedIs, this->itemSelected);
+    this->rolesLoaded->addTransition(this->ui->updateRoles, &QPushButton::clicked, this->rolesNotLoaded);
+    this->rolesLoaded->addTransition(this->ui->searchRole, &QLineEdit::textChanged, this->searching);
+    transition(this->ui->rolesList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RolesModule::handleSelectedRole, this->rolesLoaded);
+    transition(this->ui->createRole, &QPushButton::clicked, this, &RolesModule::initRoleCreation, this->rolesLoaded);
+
+    connect(this->itemSelected, &QState::entered, this, &RolesModule::enterItemSelected);
+    this->itemSelected->addTransition(this->ui->abort, &QPushButton::clicked, this->rolesLoaded);
+    transition(this->ui->deleteRole, &QPushButton::clicked, this, &RolesModule::handleRoleDeletion, this->itemSelected, this->rolesLoaded);
+
+    connect(this->searching, &QState::entered, this, &RolesModule::enterSearching);
+    transition(this->ui->abort, &QPushButton::clicked, this, &RolesModule::abortSearching, this->searching, this->rolesLoaded);
+    transition(this->ui->rolesList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RolesModule::completeSearching, this->searching, this->itemSelected);
+    transition(this->ui->searchRole, &QLineEdit::textChanged, this, &RolesModule::handleSearching, this->searching);
 }
 
 bool RolesModule::tryConnect()
@@ -58,6 +71,14 @@ bool RolesModule::tryConnect()
     UserError::connectionError("Connection", "be established 'cause something went wrong", "Check credentials or internet connection, server might be down").show(this);
 
     return false;
+}
+
+void RolesModule::showEvent(QShowEvent *event)
+{
+    if(not this->stateMachine->isRunning())
+        this->stateMachine->start();
+
+    return QWidget::showEvent(event);
 }
 
 void RolesModule::setConnection(dbapi::Connection *connection)
@@ -71,6 +92,55 @@ RolesModule::~RolesModule()
     delete ui;
 }
 
+void RolesModule::enterRolesNotLoaded()
+{
+    this->ui->deleteRole->hide();
+    this->ui->abort->hide();
+    this->ui->updateRoles->show();
+    this->ui->createRole->hide();
+
+    this->model->clear();
+
+    if(not this->tryConnect())
+        return;
+
+    auto error = this->model->loadAll();
+    this->connection->close();
+
+    if(error.isError())
+        return error.show(this);
+
+    emit this->rolesLoadedAre();
+}
+
+void RolesModule::enterRolesLoaded()
+{
+    this->ui->deleteRole->hide();
+    this->ui->abort->hide();
+    this->ui->updateRoles->show();
+    this->ui->createRole->show();
+
+    this->ui->rolesList->clearSelection();
+}
+
+void RolesModule::enterItemSelected()
+{
+    this->ui->deleteRole->show();
+    this->ui->abort->show();
+    this->ui->updateRoles->hide();
+    this->ui->createRole->hide();
+}
+
+void RolesModule::enterSearching()
+{
+    this->ui->deleteRole->hide();
+    this->ui->abort->show();
+    this->ui->updateRoles->hide();
+    this->ui->createRole->hide();
+
+    this->ui->rolesList->setModel(this->proxyModel);
+}
+
 void RolesModule::handleFoundRole(QModelIndex index)
 {
     this->ui->rolesList->scrollTo(index);
@@ -80,10 +150,8 @@ void RolesModule::handleSelectedRole()
 {
     auto& selection = this->ui->rolesList->selectionModel()->selection();
 
-    if(selection.empty())
-        this->ui->deleteRole->hide();
-    else
-        this->ui->deleteRole->show();
+    if(selection.size() > 0)
+        emit this->itemSelectedIs();
 }
 
 void RolesModule::handleRoleDeletion()
@@ -93,14 +161,15 @@ void RolesModule::handleRoleDeletion()
 
     auto indexes = this->ui->rolesList->selectionModel()->selectedIndexes();
 
+    assert((void("empty"), indexes.size() > 0));
+
     auto error = this->model->removeRole(indexes.front().row());
+    this->connection->close();
 
     if(error.isError())
         return error.show(this);
 
     QMessageBox::information(this, "Info", "All selected roles have been deleted");
-
-    this->connection->close();
 }
 
 void RolesModule::initRoleCreation()
@@ -131,14 +200,20 @@ void RolesModule::completeRoleCreation()
     QMessageBox::information(this, "Info", "Role is created");
 }
 
-void RolesModule::handleRolesLoading()
+void RolesModule::completeSearching()
 {
-    if(not this->tryConnect())
-        return;
+    QPersistentModelIndex activeIndex = this->ui->rolesList->currentIndex();
 
-    auto error = this->model->loadAll();
-    this->connection->close();
+    this->ui->rolesList->setModel(this->model);
+    this->ui->rolesList->setCurrentIndex(activeIndex);
+}
 
-    if(error.isError())
-        return error.show(this);
+void RolesModule::abortSearching()
+{
+    this->ui->rolesList->setModel(this->model);
+}
+
+void RolesModule::handleSearching()
+{
+    this->proxyModel->setFilterWildcard(this->ui->searchRole->text());
 }
