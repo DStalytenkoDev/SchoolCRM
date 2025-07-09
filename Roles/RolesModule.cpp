@@ -47,10 +47,9 @@ void RolesModule::setupStateMachine()
     this->rolesNotLoaded->addTransition(this->ui->updateRoles, &QPushButton::clicked, this->rolesNotLoaded);
 
     connect(this->rolesLoaded, &QState::entered, this, &RolesModule::enterRolesLoaded);
-    this->rolesLoaded->addTransition(this, &RolesModule::itemSelectedIs, this->itemSelected);
+    this->rolesLoaded->addTransition(this->ui->rolesList, &QListView::clicked, this->itemSelected);
     this->rolesLoaded->addTransition(this->ui->updateRoles, &QPushButton::clicked, this->rolesNotLoaded);
     this->rolesLoaded->addTransition(this->ui->searchRole, &QLineEdit::textChanged, this->searching);
-    transition(this->ui->rolesList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RolesModule::handleSelectedRole, this->rolesLoaded);
     transition(this->ui->createRole, &QPushButton::clicked, this, &RolesModule::initRoleCreation, this->rolesLoaded);
 
     connect(this->itemSelected, &QState::entered, this, &RolesModule::enterItemSelected);
@@ -58,8 +57,8 @@ void RolesModule::setupStateMachine()
     transition(this->ui->deleteRole, &QPushButton::clicked, this, &RolesModule::handleRoleDeletion, this->itemSelected, this->rolesLoaded);
 
     connect(this->searching, &QState::entered, this, &RolesModule::enterSearching);
+    transition(this->ui->rolesList, &QListView::clicked, this, &RolesModule::completeSearching, this->searching, this->itemSelected);
     transition(this->ui->abort, &QPushButton::clicked, this, &RolesModule::abortSearching, this->searching, this->rolesLoaded);
-    transition(this->ui->rolesList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RolesModule::completeSearching, this->searching, this->itemSelected);
     transition(this->ui->searchRole, &QLineEdit::textChanged, this, &RolesModule::handleSearching, this->searching);
 }
 
@@ -98,6 +97,8 @@ void RolesModule::enterRolesNotLoaded()
     this->ui->abort->hide();
     this->ui->updateRoles->show();
     this->ui->createRole->hide();
+    this->ui->searchRole->setDisabled(true);
+    this->ui->searchRole->clear();
 
     this->model->clear();
 
@@ -121,6 +122,9 @@ void RolesModule::enterRolesLoaded()
     this->ui->createRole->show();
 
     this->ui->rolesList->clearSelection();
+
+    this->ui->searchRole->setDisabled(false);
+    this->ui->searchRole->clear();
 }
 
 void RolesModule::enterItemSelected()
@@ -129,6 +133,9 @@ void RolesModule::enterItemSelected()
     this->ui->abort->show();
     this->ui->updateRoles->hide();
     this->ui->createRole->hide();
+
+    this->ui->searchRole->setDisabled(true);
+    this->ui->searchRole->clear();
 }
 
 void RolesModule::enterSearching()
@@ -139,19 +146,8 @@ void RolesModule::enterSearching()
     this->ui->createRole->hide();
 
     this->ui->rolesList->setModel(this->proxyModel);
-}
 
-void RolesModule::handleFoundRole(QModelIndex index)
-{
-    this->ui->rolesList->scrollTo(index);
-}
-
-void RolesModule::handleSelectedRole()
-{
-    auto& selection = this->ui->rolesList->selectionModel()->selection();
-
-    if(selection.size() > 0)
-        emit this->itemSelectedIs();
+    this->handleSearching();
 }
 
 void RolesModule::handleRoleDeletion()
@@ -202,10 +198,12 @@ void RolesModule::completeRoleCreation()
 
 void RolesModule::completeSearching()
 {
-    QPersistentModelIndex activeIndex = this->ui->rolesList->currentIndex();
+    QModelIndex activeIndex = this->ui->rolesList->selectionModel()->selectedIndexes().front();
+    QPersistentModelIndex sourceIndex = this->proxyModel->mapToSource(activeIndex);
 
     this->ui->rolesList->setModel(this->model);
-    this->ui->rolesList->setCurrentIndex(activeIndex);
+    this->ui->rolesList->setCurrentIndex(sourceIndex);
+    this->ui->rolesList->selectionModel()->select(sourceIndex, QItemSelectionModel::Select);
 }
 
 void RolesModule::abortSearching()

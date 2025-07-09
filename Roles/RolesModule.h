@@ -6,12 +6,12 @@
 
 #include <QItemSelection>
 #include <QStateMachine>
+#include <QSortFilterProxyModel>
 
 #include <SchoolApi/Role.h>
 
 #include "RolesModel.h"
 #include "RoleCreationDialog.h"
-#include "../ComboBoxFinderView.h"
 
 
 namespace Ui {
@@ -34,7 +34,6 @@ private:
     Ui::RolesModule *ui;
 
     RoleCreationDialog* roleCreationDialog = nullptr;
-    ComboBoxFinderView* roleFinder = nullptr;
 
     RolesModel* model = nullptr;
     QSortFilterProxyModel* proxyModel;
@@ -52,9 +51,6 @@ private:
     void enterRolesLoaded();
     void enterItemSelected();
     void enterSearching();
-
-    void handleFoundRole(QModelIndex index);
-    void handleSelectedRole();
 
     void handleRoleDeletion();
 
@@ -74,7 +70,6 @@ private:
     void showEvent(QShowEvent* event) override;
 
 private: signals:
-    void itemSelectedIs();
     void rolesLoadedAre();
 };
 
