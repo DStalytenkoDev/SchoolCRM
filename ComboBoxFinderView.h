@@ -20,7 +20,6 @@ signals:
 private:
     QSortFilterProxyModel* proxyModel;
     QCompleter* completer;
-    //QLineEdit* lineEdit;
 
     void filter(const QString& text);
     void handleSelectedItem(const QModelIndex& index);

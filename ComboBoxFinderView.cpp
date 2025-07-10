@@ -14,7 +14,6 @@ ComboBoxFinderView::ComboBoxFinderView(QWidget *parent) : QComboBox(parent)
     connect(this, &ComboBoxFinderView::currentIndexChanged, this, &ComboBoxFinderView::handleChangedIndex);
 
     this->proxyModel = new QSortFilterProxyModel(this);
-    this->proxyModel->setSourceModel(this->model());
     this->proxyModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
     this->proxyModel->setFilterKeyColumn(this->modelColumn());
 
@@ -33,21 +32,21 @@ ComboBoxFinderView::ComboBoxFinderView(QWidget *parent) : QComboBox(parent)
 void ComboBoxFinderView::setModel(QAbstractItemModel *model)
 {
     QComboBox::setModel(model);
-
     this->proxyModel->setSourceModel(model);
-    this->completer->setModel(this->proxyModel);
 }
 
 void ComboBoxFinderView::filter(const QString& text)
 {
-    this->proxyModel->setFilterFixedString(text);
+    this->proxyModel->setFilterWildcard(text);
     this->completer->complete();
 }
 
 void ComboBoxFinderView::handleSelectedItem(const QModelIndex &index)
 {
-    this->setCurrentIndex(index.row());
-    emit this->foundItem(index);
+    QModelIndex mainModelIndex = this->proxyModel->mapToSource(this->proxyModel->index(index.row(), 0));
+
+    this->setCurrentIndex(mainModelIndex.row());
+    emit this->foundItem(mainModelIndex);
 }
 
 void ComboBoxFinderView::handleSelectedItem(int index)
