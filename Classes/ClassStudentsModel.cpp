@@ -65,14 +65,14 @@ UserError ClassStudentsModel::appendStudent(const dbapi::Person::Key &key)
         return UserError::internalError("Student", "be appended 'cause an unknown error", "Try again or contact support");
 
     for(auto student : students)
-        if(student->key().person == key)
+        if(student->key().person == key && student->grade() == this->classKey)
             return UserError::keyError("Student", "be appended 'cause its already in the list");
 
     dbapi::Student student({key}, this->connection);
     student.setGrade(this->classKey);
 
     if(not student.store())
-        return UserError::internalError("Student", "be appended 'cause an unknown error", "Try again or contact support");
+        return UserError::keyError("Student", "be appended 'cause it might paricipate in other class", "Try again or contact support");
 
     this->beginInsertRows({}, this->students.size(), this->students.size());
 
@@ -93,19 +93,17 @@ UserError ClassStudentsModel::removeStudent(int index)
 {
     assert((void("out of range"), index >= 0 && index < this->students.size()));
 
-    if(not this->students[index]->remove())
-    {
-        switch (this->students[index]->error().type)
-        {
-        case dbapi::ApiError::PolicyError:
-            return UserError::referenceError("Student", "be removed 'cause its related", "Try first removing objects are using certain student");
-        default:
-            return UserError::internalError("Student", "be appended 'cause an unknown error", "Try again or contact support");
-        }
-    }
+    dbapi::Student student({this->students[index]->key()}, this->connection);
+
+    if(not student.remove())
+        return UserError::internalError("Student", "be removed 'cause an unknown error", "Try again or contact support");
+
+    this->beginRemoveRows({}, index, index);
 
     delete this->students[index];
     this->students.remove(index);
+
+    this->endRemoveRows();
 
     return {};
 }

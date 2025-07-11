@@ -61,7 +61,10 @@ UserError ClassSubjectsModel::appendSubject(const dbapi::Subject::Key &key)
     dbapi::ClassSubjectsList list({this->classKey}, this->connection);
 
     if(not list.load())
-        return UserError::internalError("Subject", "be appended 'cause an unknown error", "Try again or contact support");
+    {
+        if(list.error().type != dbapi::ApiError::KeyError)
+            return UserError::internalError("Subject", "be appended 'cause an unknown error", "Try again or contact support");
+    }
 
     for(auto& subject : list.subjects())
         if(subject == key)

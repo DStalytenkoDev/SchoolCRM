@@ -221,6 +221,8 @@ void PersonsModule::enterPersonEditing()
 void PersonsModule::handleFoundPerson(QModelIndex index)
 {
     this->ui->personsList->scrollTo(index);
+
+    this->ui->personsList->setCurrentIndex(index);
     this->ui->personsList->selectionModel()->select(index, QItemSelectionModel::Select);
 }
 

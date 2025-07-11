@@ -91,8 +91,6 @@ UserError PersonsModel::editPerson(int index, const QString &firstName, const QS
 {
     assert((void("out of range"), index >= 0 && index < this->persons.size()));
 
-    auto person = this->persons[index];
-
     auto error = this->loadAll();
 
     if(error.isError())
@@ -107,6 +105,8 @@ UserError PersonsModel::editPerson(int index, const QString &firstName, const QS
     for(auto person: this->persons)
         if(person->firstName() == trimmedFirstName and person->secondName() == trimmedSecondName)
             return UserError::validityError("Person", "be edited 'cause same one already exists");
+
+    auto person = this->persons[index];
 
     person->setFirstName(trimmedFirstName);
     person->setSecondName(trimmedSecondName);

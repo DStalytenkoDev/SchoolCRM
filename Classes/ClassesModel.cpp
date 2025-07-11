@@ -90,6 +90,9 @@ UserError ClassesModel::removeClass(int index)
     ClassStudentsModel studentsModel(this);
     ClassSubjectsModel subjectsModel(this);
 
+    studentsModel.setConnection(this->connection);
+    subjectsModel.setConnection(this->connection);
+
     studentsModel.setClass(grade->key());
     subjectsModel.setClass(grade->key());
 
@@ -120,7 +123,7 @@ UserError ClassesModel::removeClass(int index)
         }
     }
 
-    if(this->removeTeacher(index))
+    if(not this->removeTeacher(index))
     {
         this->connection->rollback();
         return UserError::internalError("Class", "be removed 'cause an unknown error", "Try again or contact support");
