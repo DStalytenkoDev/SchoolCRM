@@ -17,28 +17,6 @@
    <item>
     <layout class="QHBoxLayout" name="menuLayout">
      <item>
-      <widget class="QLineEdit" name="searchPerson">
-       <property name="minimumSize">
-        <size>
-         <width>150</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>200</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="inputMask">
-        <string/>
-       </property>
-       <property name="placeholderText">
-        <string>Find a person...</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
@@ -55,13 +33,6 @@
       <widget class="QPushButton" name="createPerson">
        <property name="text">
         <string>Create</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="editPerson">
-       <property name="text">
-        <string>Edit</string>
        </property>
       </widget>
      </item>

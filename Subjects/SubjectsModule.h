@@ -3,10 +3,10 @@
 
 
 #include <QWidget>
-#include <qitemselectionmodel.h>
+#include <QSortFilterProxyModel>
+#include <QStateMachine>
 #include "SubjectsModel.h"
 #include "CreateSubjectDialog.h"
-#include "../ComboBoxFinderView.h"
 
 
 namespace Ui {
@@ -28,26 +28,43 @@ public:
 private:
     Ui::SubjectsModule *ui;
     CreateSubjectDialog* subjectCreationDialog = nullptr;
-    ComboBoxFinderView* subjectFinder = nullptr;
 
     SubjectsModel* model = nullptr;
+    QSortFilterProxyModel* proxyModel;
 
     dbapi::Connection* connection = nullptr;
 
-    void handleFoundSubject(QModelIndex index);
-    void handleSelectedSubject();
+    QStateMachine* stateMachine;
+    QState* updateGroup;
+    QState* subjectsNotLoaded;
+    QState* subjectsLoaded;
+    QState* itemSelected;
+    QState* searching;
+
+    void enterSubjectsNotLoaded();
+    void enterSubjectsLoaded();
+    void enterItemSelected();
+    void enterSearching();
 
     void handleSubjectDeletion();
 
     void initSubjectCreation();
     void completeSubjectCreation();
 
-    void handleSubjectsLoading();
+    void completeSearching();
+    void abortSearching();
+    void handleSearching();
 
     void setupSubjectFinder();
-    void setupSubjectList();
+    void setupSubjectsList();
+    void setupStateMachine();
 
     bool tryConnect();
+
+    void showEvent(QShowEvent* event) override;
+
+private: signals:
+    void subjectsLoadedAre();
 };
 
 

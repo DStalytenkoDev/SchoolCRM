@@ -25,7 +25,6 @@ public:
     PersonsModule(QWidget *parent = nullptr);
 
     void setConnection(dbapi::Connection* connection);
-    void prepare();
 
     ~PersonsModule();
 
@@ -44,14 +43,12 @@ private:
     QState* personsNotLoaded;
     QState* personsLoaded;
     QState* itemSelected;
-    QState* personEditing;
 
     dbapi::Connection* connection = nullptr;
 
     void enterPersonsNotLoaded();
     void enterPersonsLoaded();
     void enterItemSelected();
-    void enterPersonEditing();
 
     void handleFoundPerson(QModelIndex index);
     void handleSelectedItem();
@@ -71,12 +68,13 @@ private:
     /// trys to open the connection, otherwise shows error
     bool tryConnect();
 
+    void showEvent(QShowEvent* event) override;
+
 private: signals:
     void reseted();
-    void itemSelectedIs();
+    void personFoundIs();
     void personsLoadedAre();
     void dataError();
-    void itemDeselectedIs();
 };
 
 
