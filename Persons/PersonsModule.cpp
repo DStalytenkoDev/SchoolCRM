@@ -5,6 +5,8 @@
 #include <qdatetime.h>
 #include <qmessagebox.h>
 
+#include "TransitionFactrory.h"
+
 
 PersonsModule::PersonsModule(QWidget *parent)
     : QWidget(parent)
@@ -23,9 +25,6 @@ PersonsModule::PersonsModule(QWidget *parent)
     // handle creation
     connect(this->ui->createPerson, &QPushButton::clicked, this, &PersonsModule::initPersonCreation);
 
-    // handle deletion of selection
-    connect(this->ui->deletePerson, &QPushButton::clicked, this, &PersonsModule::handlePersonDeletion);
-
     this->setupPersonsList();
     this->setupPersonFinder();
     this->setupPersonEditionWidget();
@@ -35,13 +34,9 @@ PersonsModule::PersonsModule(QWidget *parent)
 void PersonsModule::setupPersonFinder()
 {
     this->personFinder = new ComboBoxFinderView(this);
+    this->personFinder->setModel(this->model);
 
-    auto layout = this->ui->menuLayout->replaceWidget(this->ui->searchPerson, this->personFinder);
-    this->ui->searchPerson->hide();
-
-    delete layout;
-
-    this->personFinder->setModel(this->model); // set model for search bar
+    this->ui->menuLayout->insertWidget(0, this->personFinder);
 
     // handle searching
     connect(this->personFinder, &ComboBoxFinderView::foundItem, this, &PersonsModule::handleFoundPerson);
@@ -52,20 +47,14 @@ void PersonsModule::setupPersonsList()
     this->ui->personsList->setModel(this->model); // set model to main list
     this->ui->personsList->setSelectionBehavior(QAbstractItemView::SelectRows);
     this->ui->personsList->setSelectionMode(QAbstractItemView::SingleSelection);
-
-    // handle selection of persons
-    connect(this->ui->personsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &PersonsModule::handleSelectedItem);
 }
 
 void PersonsModule::setupPersonEditionWidget()
 {
     this->personWidget = new PersonEditionWidget(this);
-    this->personWidget->setRoles(this->rolesModel); // set roles model to edit bar
+    this->personWidget->setRoles(this->rolesModel);
 
     this->ui->bottomlayout->addWidget(this->personWidget); // add person edit bar
-
-    // handle edition completing
-    connect(this->personWidget, &PersonEditionWidget::saveButtonClicked, this, &PersonsModule::completePersonEdition);
 }
 
 void PersonsModule::setupStateMachine()
@@ -76,23 +65,20 @@ void PersonsModule::setupStateMachine()
     this->personsNotLoaded = new QState(this->resetState);
     this->personsLoaded = new QState(this->resetState);
     this->itemSelected = new QState(this->resetState);
-    this->personEditing = new QState(this->resetState);
 
     connect(this->personsNotLoaded, &QState::entered, this, &PersonsModule::enterPersonsNotLoaded);
     this->personsNotLoaded->addTransition(this, &PersonsModule::personsLoadedAre, this->personsLoaded);
 
     connect(this->personsLoaded, &QState::entered, this, &PersonsModule::enterPersonsLoaded);
-    this->personsLoaded->addTransition(this, &PersonsModule::itemSelectedIs, this->itemSelected);
+    this->personsLoaded->addTransition(this->ui->personsList, &QListView::clicked, this->itemSelected);
+    this->personsLoaded->addTransition(this, &PersonsModule::personFoundIs, this->itemSelected);
 
     connect(this->itemSelected, &QState::entered, this, &PersonsModule::enterItemSelected);
-    this->itemSelected->addTransition(this->ui->editPerson, &QPushButton::clicked, this->personEditing);
-    this->itemSelected->addTransition(this, &PersonsModule::itemDeselectedIs, this->personsLoaded);
-    this->itemSelected->addTransition(this->ui->deletePerson, &QPushButton::clicked, this->personsLoaded);
-
-    connect(this->personEditing, &QState::entered, this, &PersonsModule::enterPersonEditing);
-    this->personEditing->addTransition(this->personWidget, &PersonEditionWidget::saveButtonClicked, this->itemSelected);
-    this->personEditing->addTransition(this->personWidget, &PersonEditionWidget::abortButtonClicked, this->itemSelected);
-    this->personEditing->addTransition(this, &PersonsModule::dataError, this->itemSelected);
+    connect(this->itemSelected, &QState::exited, this->ui->personsList, &QListView::clearSelection);
+    this->itemSelected->addTransition(this, &PersonsModule::dataError, this->personsLoaded);
+    this->itemSelected->addTransition(this->personWidget, &PersonEditionWidget::abortButtonClicked, this->personsLoaded);
+    transition(this->personWidget, &PersonEditionWidget::saveButtonClicked, this, &PersonsModule::completePersonEdition, this->itemSelected);
+    transition(this->ui->deletePerson, &QPushButton::clicked, this, &PersonsModule::handlePersonDeletion, this->itemSelected, this->personsLoaded);
 
     this->resetState->addTransition(this, &PersonsModule::reseted, this->personsNotLoaded);
     this->resetState->setInitialState(this->personsNotLoaded);
@@ -111,20 +97,22 @@ bool PersonsModule::tryConnect()
     return false;
 }
 
+void PersonsModule::showEvent(QShowEvent *event)
+{
+    if(not this->stateMachine->isRunning())
+        this->stateMachine->start();
+
+    emit this->reseted();
+
+    return QWidget::showEvent(event);
+}
+
 void PersonsModule::setConnection(dbapi::Connection *connection)
 {
     this->connection = connection;
 
     this->model->setConnection(connection);
     this->rolesModel->setConnection(connection);
-}
-
-void PersonsModule::prepare()
-{
-    if(not this->stateMachine->isRunning())
-        this->stateMachine->start();
-
-    emit this->reseted();
 }
 
 PersonsModule::~PersonsModule()
@@ -136,9 +124,8 @@ void PersonsModule::enterPersonsNotLoaded()
 {
     this->personFinder->setCurrentIndex(-1);
     this->personFinder->setDisabled(true);
-    this->ui->createPerson->setHidden(false);
+    this->ui->createPerson->show();
     this->ui->deletePerson->hide();
-    this->ui->editPerson->hide();
     this->model->clear();
     this->personWidget->hide();
 
@@ -157,23 +144,13 @@ void PersonsModule::enterPersonsNotLoaded()
 void PersonsModule::enterPersonsLoaded()
 {
     this->personFinder->setDisabled(false);
-    this->ui->createPerson->setHidden(false);
+    this->ui->personsList->setDisabled(false);
+    this->ui->createPerson->show();
     this->ui->deletePerson->hide();
-    this->ui->editPerson->hide();
-    this->ui->personsList->clearSelection();
-    this->ui->personsList->setDisabled(false);
-}
-
-void PersonsModule::enterItemSelected()
-{
-    this->ui->editPerson->setHidden(false);
-    this->ui->deletePerson->setHidden(false);
-    this->ui->createPerson->hide();
-    this->ui->personsList->setDisabled(false);
     this->personWidget->hide();
 }
 
-void PersonsModule::enterPersonEditing()
+void PersonsModule::enterItemSelected()
 {
     if(not this->tryConnect())
     {
@@ -186,7 +163,7 @@ void PersonsModule::enterPersonEditing()
 
     if(error.isError())
     {
-        UserError::internalError("Person", "be edited 'cause an unknown error", "Try again or contact support").show(this);
+        UserError::internalError("Person", "be shown and/or edited 'cause an unknown error", "Try again or contact support").show(this);
         emit this->dataError();
         return;
     }
@@ -206,37 +183,26 @@ void PersonsModule::enterPersonEditing()
 
     if(foundRow < 0)
     {
-        UserError::internalError("Person", "be edited 'cause an unknown error", "Try again or contact support").show(this);
+        UserError::internalError("Person", "be shown and/or edited 'cause an unknown error", "Try again or contact support").show(this);
         emit this->dataError();
         return;
     }
 
-    this->ui->personsList->setDisabled(true);
-    this->ui->editPerson->hide();
-    this->ui->deletePerson->hide();
     this->personWidget->setRole(this->rolesModel->index(foundRow));
+
+    this->ui->deletePerson->show();
     this->personWidget->show();
+    this->ui->createPerson->hide();
+    this->ui->personsList->setDisabled(true);
 }
 
 void PersonsModule::handleFoundPerson(QModelIndex index)
 {
     this->ui->personsList->scrollTo(index);
-
     this->ui->personsList->setCurrentIndex(index);
     this->ui->personsList->selectionModel()->select(index, QItemSelectionModel::Select);
-}
 
-void PersonsModule::handleSelectedItem()
-{
-    auto& selection = this->ui->personsList->selectionModel()->selection();
-
-    if(selection.empty())
-    {
-        emit this->itemDeselectedIs();
-        return;
-    }
-
-    emit this->itemSelectedIs();
+    emit this->personFoundIs();
 }
 
 void PersonsModule::handlePersonDeletion()
@@ -244,7 +210,7 @@ void PersonsModule::handlePersonDeletion()
     if(not this->tryConnect())
         return;
 
-    auto error = this->model->removePerson(this->ui->personsList->selectionModel()->selection().indexes().front().row());
+    auto error = this->model->removePerson(this->ui->personsList->currentIndex().row());
     this->connection->close();
 
     if(error.isError())
@@ -300,15 +266,22 @@ void PersonsModule::completePersonEdition()
     if(not this->tryConnect())
         return;
 
-    auto error = this->model->editPerson(this->ui->personsList->currentIndex().row(),
+    QModelIndex index = this->ui->personsList->currentIndex();
+
+    auto error = this->model->editPerson(index.row(),
                                          this->personWidget->firstName(),
                                          this->personWidget->secondName(),
                                          this->personWidget->date(),
                                          this->rolesModel->role(this->personWidget->role())->key());
     this->connection->close();
 
+    this->ui->personsList->setCurrentIndex(index);
+    this->ui->personsList->selectionModel()->select(index, QItemSelectionModel::Select);
+
     if(error.isError())
         return error.show(this);
 
     QMessageBox::information(this, "Info", "Person edited successfully");
 }
+
+

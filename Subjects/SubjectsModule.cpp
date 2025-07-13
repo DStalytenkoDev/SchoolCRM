@@ -1,7 +1,6 @@
-#include <SchoolApi/Subject.h>
-#include <QMessageBox>
 #include "SubjectsModule.h"
 #include "ui_SubjectsModule.h"
+#include "TransitionFactrory.h"
 
 
 SubjectsModule::SubjectsModule(QWidget *parent)
@@ -10,21 +9,75 @@ SubjectsModule::SubjectsModule(QWidget *parent)
 {
     ui->setupUi(this);
 
-    this->ui->deleteSubject->hide();
-
     this->model = new SubjectsModel(this);
+    this->proxyModel = new QSortFilterProxyModel(this);
 
     this->setupSubjectFinder();
-    this->setupSubjectList();
+    this->setupSubjectsList();
+    this->setupStateMachine();
+}
 
-    // handle deleting
-    connect(this->ui->deleteSubject, &QPushButton::clicked, this, &SubjectsModule::handleSubjectDeletion);
+void SubjectsModule::setupSubjectFinder()
+{
+    this->proxyModel->setSourceModel(this->model);
+    this->proxyModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
+    this->proxyModel->setFilterKeyColumn(0);
+}
 
-    // handle creation
-    connect(this->ui->createSubject, &QPushButton::clicked, this, &SubjectsModule::initSubjectCreation);
+void SubjectsModule::setupSubjectsList()
+{
+    this->ui->subjectsList->setModel(this->model);
+    this->ui->subjectsList->setSelectionBehavior(QAbstractItemView::SelectRows);
+    this->ui->subjectsList->setSelectionMode(QAbstractItemView::SingleSelection);
+}
 
-    // handle load all
-    connect(this->ui->loadAllButton, &QPushButton::clicked, this, &SubjectsModule::handleSubjectsLoading);
+void SubjectsModule::setupStateMachine()
+{
+    this->stateMachine = new QStateMachine(this);
+
+    this->subjectsLoaded = new QState(this->stateMachine);
+    this->subjectsNotLoaded = new QState(this->stateMachine);
+    this->itemSelected = new QState(this->stateMachine);
+    this->searching = new QState(this->stateMachine);
+
+    this->stateMachine->setInitialState(this->subjectsNotLoaded);
+
+    connect(this->subjectsNotLoaded, &QState::entered, this, &SubjectsModule::enterSubjectsNotLoaded);
+    this->subjectsNotLoaded->addTransition(this, &SubjectsModule::subjectsLoadedAre, this->subjectsLoaded);
+    this->subjectsNotLoaded->addTransition(this->ui->updateSubjects, &QPushButton::clicked, this->subjectsNotLoaded);
+
+    connect(this->subjectsLoaded, &QState::entered, this, &SubjectsModule::enterSubjectsLoaded);
+    this->subjectsLoaded->addTransition(this->ui->subjectsList, &QListView::clicked, this->itemSelected);
+    this->subjectsLoaded->addTransition(this->ui->updateSubjects, &QPushButton::clicked, this->subjectsNotLoaded);
+    this->subjectsLoaded->addTransition(this->ui->searchSubject, &QLineEdit::textChanged, this->searching);
+    transition(this->ui->createSubject, &QPushButton::clicked, this, &SubjectsModule::initSubjectCreation, this->subjectsLoaded);
+
+    connect(this->itemSelected, &QState::entered, this, &SubjectsModule::enterItemSelected);
+    this->itemSelected->addTransition(this->ui->abort, &QPushButton::clicked, this->subjectsLoaded);
+    transition(this->ui->deleteSubject, &QPushButton::clicked, this, &SubjectsModule::handleSubjectDeletion, this->itemSelected, this->subjectsLoaded);
+
+    connect(this->searching, &QState::entered, this, &SubjectsModule::enterSearching);
+    transition(this->ui->subjectsList, &QListView::clicked, this, &SubjectsModule::completeSearching, this->searching, this->itemSelected);
+    transition(this->ui->abort, &QPushButton::clicked, this, &SubjectsModule::abortSearching, this->searching, this->subjectsLoaded);
+    transition(this->ui->searchSubject, &QLineEdit::textChanged, this, &SubjectsModule::handleSearching, this->searching);
+}
+
+bool SubjectsModule::tryConnect()
+{
+    if(this->connection->open())
+        return true;
+
+    UserError::connectionError("Connection", "be established 'cause something went wrong", "Check credentials or internet connection, server might be down").show(this);
+
+    return false;
+}
+
+void SubjectsModule::showEvent(QShowEvent *event)
+{
+    if(not this->stateMachine->isRunning())
+        this->stateMachine->start();
+
+    return QWidget::showEvent(event);
 }
 
 void SubjectsModule::setConnection(dbapi::Connection *connection)
@@ -38,19 +91,63 @@ SubjectsModule::~SubjectsModule()
     delete ui;
 }
 
-void SubjectsModule::handleFoundSubject(QModelIndex index)
+void SubjectsModule::enterSubjectsNotLoaded()
 {
-    this->ui->subjectsList->scrollTo(index);
+    this->ui->deleteSubject->hide();
+    this->ui->abort->hide();
+    this->ui->updateSubjects->show();
+    this->ui->createSubject->hide();
+    this->ui->searchSubject->setDisabled(true);
+    this->ui->searchSubject->clear();
+
+    this->model->clear();
+
+    if(not this->tryConnect())
+        return;
+
+    auto error = this->model->loadAll();
+    this->connection->close();
+
+    if(error.isError())
+        return error.show(this);
+
+    emit this->subjectsLoadedAre();
 }
 
-void SubjectsModule::handleSelectedSubject()
+void SubjectsModule::enterSubjectsLoaded()
 {
-    auto& selection = this->ui->subjectsList->selectionModel()->selection();
+    this->ui->deleteSubject->hide();
+    this->ui->abort->hide();
+    this->ui->updateSubjects->show();
+    this->ui->createSubject->show();
 
-    if(selection.empty())
-        this->ui->deleteSubject->hide();
-    else
-        this->ui->deleteSubject->show();
+    this->ui->subjectsList->clearSelection();
+
+    this->ui->searchSubject->setDisabled(false);
+    this->ui->searchSubject->clear();
+}
+
+void SubjectsModule::enterItemSelected()
+{
+    this->ui->deleteSubject->show();
+    this->ui->abort->show();
+    this->ui->updateSubjects->hide();
+    this->ui->createSubject->hide();
+
+    this->ui->searchSubject->setDisabled(true);
+    this->ui->searchSubject->clear();
+}
+
+void SubjectsModule::enterSearching()
+{
+    this->ui->deleteSubject->hide();
+    this->ui->abort->show();
+    this->ui->updateSubjects->hide();
+    this->ui->createSubject->hide();
+
+    this->ui->subjectsList->setModel(this->proxyModel);
+
+    this->handleSearching();
 }
 
 void SubjectsModule::handleSubjectDeletion()
@@ -60,14 +157,15 @@ void SubjectsModule::handleSubjectDeletion()
 
     auto indexes = this->ui->subjectsList->selectionModel()->selectedIndexes();
 
+    assert((void("empty"), indexes.size() > 0));
+
     auto error = this->model->removeSubject(indexes.front().row());
+    this->connection->close();
 
     if(error.isError())
         return error.show(this);
 
     QMessageBox::information(this, "Info", "All selected subjects have been deleted");
-
-    this->connection->close();
 }
 
 void SubjectsModule::initSubjectCreation()
@@ -98,49 +196,22 @@ void SubjectsModule::completeSubjectCreation()
     QMessageBox::information(this, "Info", "Subject is created");
 }
 
-void SubjectsModule::handleSubjectsLoading()
+void SubjectsModule::completeSearching()
 {
-    if(not this->tryConnect())
-        return;
+    QModelIndex activeIndex = this->ui->subjectsList->selectionModel()->selectedIndexes().front();
+    QPersistentModelIndex sourceIndex = this->proxyModel->mapToSource(activeIndex);
 
-    auto error = this->model->loadAll();
-    this->connection->close();
-
-    if(error.isError())
-        return error.show(this);
+    this->ui->subjectsList->setModel(this->model);
+    this->ui->subjectsList->setCurrentIndex(sourceIndex);
+    this->ui->subjectsList->selectionModel()->select(sourceIndex, QItemSelectionModel::Select);
 }
 
-void SubjectsModule::setupSubjectFinder()
-{
-    this->subjectFinder = new ComboBoxFinderView(this);
-
-    auto layout = this->ui->menuLayout->replaceWidget(this->ui->lineEdit, this->subjectFinder);
-    this->ui->lineEdit->hide();
-
-    delete layout;
-
-    this->subjectFinder->setModel(this->model);
-
-    // handle searching
-    connect(this->subjectFinder, &ComboBoxFinderView::foundItem, this, &SubjectsModule::handleFoundSubject);
-}
-
-void SubjectsModule::setupSubjectList()
+void SubjectsModule::abortSearching()
 {
     this->ui->subjectsList->setModel(this->model);
-    this->ui->subjectsList->setSelectionBehavior(QAbstractItemView::SelectRows);
-    this->ui->subjectsList->setSelectionMode(QAbstractItemView::SingleSelection);
-
-    // handle selection
-    connect(this->ui->subjectsList->selectionModel(), &QItemSelectionModel::selectionChanged, this, &SubjectsModule::handleSelectedSubject);
 }
 
-bool SubjectsModule::tryConnect()
+void SubjectsModule::handleSearching()
 {
-    if(this->connection->open())
-        return true;
-
-    UserError::connectionError("Connection", "be established 'cause something went wrong", "Check credentials or internet connection, server might be down").show(this);
-
-    return false;
+    this->proxyModel->setFilterWildcard(this->ui->searchSubject->text());
 }

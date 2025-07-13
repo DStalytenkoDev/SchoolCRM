@@ -17,7 +17,7 @@
    <item>
     <layout class="QHBoxLayout" name="menuLayout">
      <item>
-      <widget class="QLineEdit" name="lineEdit">
+      <widget class="QLineEdit" name="searchSubject">
        <property name="minimumSize">
         <size>
          <width>150</width>
@@ -46,16 +46,9 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="loadAllButton">
+      <widget class="QPushButton" name="abort">
        <property name="text">
-        <string>Load all</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="createSubject">
-       <property name="text">
-        <string>Create</string>
+        <string>Abort</string>
        </property>
       </widget>
      </item>
@@ -63,6 +56,20 @@
       <widget class="QPushButton" name="deleteSubject">
        <property name="text">
         <string>Del</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="updateSubjects">
+       <property name="text">
+        <string>Update</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="createSubject">
+       <property name="text">
+        <string>Create</string>
        </property>
       </widget>
      </item>

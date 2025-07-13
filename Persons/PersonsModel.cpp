@@ -103,7 +103,9 @@ UserError PersonsModel::editPerson(int index, const QString &firstName, const QS
         return UserError::validityError("Person", "be edited 'cause it has empty first or second name");
 
     for(auto person: this->persons)
-        if(person->firstName() == trimmedFirstName and person->secondName() == trimmedSecondName)
+        if(person->key() != this->persons[index]->key() and
+            person->firstName() == trimmedFirstName and
+            person->secondName() == trimmedSecondName)
             return UserError::validityError("Person", "be edited 'cause same one already exists");
 
     auto person = this->persons[index];
