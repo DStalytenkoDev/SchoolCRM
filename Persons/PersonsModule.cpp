@@ -80,7 +80,7 @@ void PersonsModule::setupStateMachine()
     transition(this->personWidget, &PersonEditionWidget::saveButtonClicked, this, &PersonsModule::completePersonEdition, this->itemSelected);
     transition(this->ui->deletePerson, &QPushButton::clicked, this, &PersonsModule::handlePersonDeletion, this->itemSelected, this->personsLoaded);
 
-    this->resetState->addTransition(this, &PersonsModule::reseted, this->personsNotLoaded);
+    this->resetState->addTransition(this->ui->updatePersons, &QPushButton::clicked, this->personsNotLoaded);
     this->resetState->setInitialState(this->personsNotLoaded);
 
     this->stateMachine->addState(this->resetState);
@@ -101,8 +101,6 @@ void PersonsModule::showEvent(QShowEvent *event)
 {
     if(not this->stateMachine->isRunning())
         this->stateMachine->start();
-
-    emit this->reseted();
 
     return QWidget::showEvent(event);
 }
