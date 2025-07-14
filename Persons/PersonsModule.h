@@ -71,7 +71,6 @@ private:
     void showEvent(QShowEvent* event) override;
 
 private: signals:
-    void reseted();
     void personFoundIs();
     void personsLoadedAre();
     void dataError();
