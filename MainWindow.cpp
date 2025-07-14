@@ -71,10 +71,7 @@ void MainWindow::manageLeftBarActions(QTreeWidgetItem *item, int column)
         this->initAuthorization();
 
     if(text == "Persons")
-    {
         this->swapMainWidget(this->persons);
-        this->persons->prepare();
-    }
 
     if(text == "Roles")
         this->swapMainWidget(this->roles);
