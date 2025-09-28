@@ -28,6 +28,40 @@ Main widgets called modules. They just swicth each other 'cause user interaction
 3. Do auto confiuration with Qt Creator and GCC or MSVC compiler
 4. build
 
+=======
+### Deployment guide
+
+For now you needa just install some general sql server.  
+Then in `./deployment/` you can find two **sql** scripts.
+
+#### They are:
+- `create_schooldb_mariadb.sql` - uses more general sql and has **100%** compatability with **MariaDB**
+- `create_schooldb_mssql.sql` - uses MS SQL Server specific sql and has **100%** compatability with **MS SQL Server**  
+
+> just run scripts in your particular client  
+> choose more suitable for you
+
+#### Attention:
+> **Script for MariamDB also creates Database named School**  
+> **MS SQL script does not create the database, though it tries to use a database named School**  
+>  
+> **Edit scripts if need**  
+----
+> Unfortunately you can encounter some driver problems in the **QSQLDatabase** on linux yet so far.
+> I will fix that as soon as possible, though if driver issues are not your problem than you good to go))
+> just build the database right way, and then everything's simple.
+----
+
+### Platform support so far...
+- Windows 10 [possibly]
+- Windows 11 with MS SQL SERVER and QODBC driver [yes]
+- Linux [not yet] (driver issues, though you can play with it)
+
+#### You can try changing driver in the APIs files:
+> in the file `SchoolApi_v2.0.0/SchoolApi/Connection.h` in the line **26**
+> change `QSqlDatabase database = QSqlDatabase::addDatabase("QODBC");`
+> And as an example here it is: `QSqlDatabase database = QSqlDatabase::addDatabase("Other driver...");`
+
 ### Contribute
 - Any big or unfinished changes should go through  `dev`  branch
 - When anything from  `dev`  seems working it should migrate to  `beta`  branch
