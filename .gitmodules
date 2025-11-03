@@ -1,0 +1,4 @@
+[submodule "qt6"]
+	path = qt6
+	url = https://code.qt.io/qt/qt5.git
+	branch = 6.9.3

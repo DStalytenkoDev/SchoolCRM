@@ -19,45 +19,29 @@ Main widgets called modules. They just swicth each other 'cause user interaction
 - The Journal
 
 ### Stack used
-- The SchoolDatabaseApi project [DStalytenkoDev/SchoolDatabaseApi.git](https://github.com/DStalytenkoDev/SchoolDatabaseApi.git)
-- Qt Framework
+- Qt Framework 6.9.3
+- The SchoolDatabaseApi (will remain as a part of this project as of now) [DStalytenkoDev/SchoolDatabaseApi.git](https://github.com/DStalytenkoDev/SchoolDatabaseApi.git)
+- MariaDB as the database
 
 ### Build guide
 1. Clone repo
-2. Open **SchoolCRM/CMakeLists.txt** by Qt creator
-3. Do auto confiuration with Qt Creator and GCC or MSVC compiler
-4. build
+2. Run `cmake -DBUILDTYPE=debug -P Init.cmake`, you can change `debug` to `release`
+3. Run `cmake --build proj/build/MainCmakeConf`
 
-=======
-### Deployment guide
-
-For now you needa just install some general sql server.  
-Then in `./deployment/` you can find two **sql** scripts.
-
-#### They are:
-- `create_schooldb_mariadb.sql` - uses more general sql and has **100%** compatability with **MariaDB**
-- `create_schooldb_mssql.sql` - uses MS SQL Server specific sql and has **100%** compatability with **MS SQL Server**  
-
-> just run scripts in your particular client  
-> choose more suitable for you
-
-#### Attention:
-> **Script for MariamDB also creates Database named School**  
-> **MS SQL script does not create the database, though it tries to use a database named School**  
->  
-> **Edit scripts if need**  
-----
+> the Init.cmake initiates qt6 and builds it
+> and creates the main projects's configuration
+> then you still need to build the main project and rebuild it when-ever you need
+===
 > Unfortunately you can encounter some driver problems in the **QSQLDatabase** on linux yet so far.
 > I will fix that as soon as possible, though if driver issues are not your problem than you good to go))
 > just build the database right way, and then everything's simple.
 ----
 
 ### Platform support so far...
-- Windows 10 [possibly]
-- Windows 11 with MS SQL SERVER and QODBC driver [yes]
-- Linux [not yet] (driver issues, though you can play with it)
+- Windows 10, 11 with MS SQL SERVER and QODBC driver [yes]
+- Linux (driver issues are there)
 
-#### You can try changing driver in the APIs files:
+#### Tip: You can try changing driver in the APIs files:
 > in the file `SchoolApi_v2.0.0/SchoolApi/Connection.h` in the line **26**
 > change `QSqlDatabase database = QSqlDatabase::addDatabase("QODBC");`
 > And as an example here it is: `QSqlDatabase database = QSqlDatabase::addDatabase("Other driver...");`
