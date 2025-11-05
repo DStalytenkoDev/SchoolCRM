@@ -1,52 +1,51 @@
-# SchoolCRM is GUI application to manage School database
+# SchooliesCave is GUI application for School
 
-The project serves the porpose of creating a GUI app for a Database API, thogh more or less  
-it gets rid of the API and does not respresent it directly. At some points it combines  
-certain entities into high level widgets.
+**It manages School database and it aims to be a platform for teachers, students and their school life.**
 
-## Its structure
-The interface consists mostly of the left bar and main widget takes all of the right space.  
-Main widgets called modules. They just swicth each other 'cause user interactions.
+The project serves the porpose of creating a GUI app for School. Also it uses its own API layer over the Sql.  
+That API that is SchoolDatabaseApi now is a nearly solid part of the project. And will have lesser effect on the main project.
 
-### The stuff is:
-- List-like entities:
-        - Persons
-        - Roles
-        - Subjects
-- List-of-lists-like entities:
-        - Subjects of a teacher
-- The Classes
-- The Journal
+## What can you expect from SchooliesCave?
 
-### Stack used
-- Qt Framework 6.9.3
-- The SchoolDatabaseApi (will remain as a part of this project as of now) [DStalytenkoDev/SchoolDatabaseApi.git](https://github.com/DStalytenkoDev/SchoolDatabaseApi.git)
-- MariaDB as the database
+You can connect the app to an sql server. And **manage these kinds of data**:
+- Roles (Positions of employees)
+- The list of every person and some data associated with it
+- The list of all subjects
+- The lists of subjects associated with a particular teacher
+- Ability to manage all grades, eg. create/delete grade, add/remove students, add/remove subjects
+- The journal to manage students scores.
 
-### Build guide
+## Stack used
+- **Qt Framework 6.9.3** with no modifications as a linked git module under the **GPL-3.0-only**
+
+## License
+The **SchooliesCave** is released under the **GNU General Public License, version 3 only**. (GPL-3.0-only)  
+**Please see the LICENSE and pay attention to copyright and license notices in all project's files**
+
+## Build guide
 1. Clone repo
 2. Run `cmake -DBUILDTYPE=debug -P Init.cmake`, you can change `debug` to `release`
 3. Run `cmake --build proj/build/MainCmakeConf`
 
-> the Init.cmake initiates qt6 and builds it
+> the **Init.cmake** initiates **Qt6** and builds it
 > and creates the main projects's configuration
 > then you still need to build the main project and rebuild it when-ever you need
-===
-> Unfortunately you can encounter some driver problems in the **QSQLDatabase** on linux yet so far.
-> I will fix that as soon as possible, though if driver issues are not your problem than you good to go))
-> just build the database right way, and then everything's simple.
-----
 
-### Platform support so far...
-- Windows 10, 11 with MS SQL SERVER and QODBC driver [yes]
-- Linux (driver issues are there)
+## Platform support
 
-#### Tip: You can try changing driver in the APIs files:
-> in the file `SchoolApi_v2.0.0/SchoolApi/Connection.h` in the line **26**
-> change `QSqlDatabase database = QSqlDatabase::addDatabase("QODBC");`
-> And as an example here it is: `QSqlDatabase database = QSqlDatabase::addDatabase("Other driver...");`
+**The goal is Unix and Windows**
 
-### Contribute
+- Windows 10, 11 (should build, the new **Init.cmake** approach is not tested)
+- Linux (should build, **tested**)
+
+#### Sql server issues
+- The project now is within a process of sql's server changing
+- The main candidates now are MySQL, MariaDB or PostgreSql
+
+> If you like to discover sql connection, you should check out dbapi::Connection in the Api's files  
+> And possibly change the QSql's driver plugin.
+
+## Contribute rules
 - Any big or unfinished changes should go through  `dev`  branch
 - When anything from  `dev`  seems working it should migrate to  `beta`  branch
 - When  `beta`  becomes stable it migrates to  `master`  branch
