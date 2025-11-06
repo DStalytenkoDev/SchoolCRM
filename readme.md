@@ -36,7 +36,7 @@ The **SchooliesCave** is released under the **GNU General Public License, versio
 ## Depoyment notice
 
 1. Install MariaDB as you wish, [MariaDB Docs](https://mariadb.com/docs/server)
-2. Edit in **SchoolApi_v2.0.0/create_school_database.sql** the `use SchooliesCave;` to the name of the db you created
+2. Edit in **src/SchoolApi_v2.0.0/create_school_database.sql** the `use SchooliesCave;` to the name of the db you created
 3. Run the content of the script in the admin panel to create the database
 
 ## Platform support
