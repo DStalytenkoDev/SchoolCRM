@@ -14,9 +14,11 @@ You can connect the app to an sql server. And **manage these kinds of data**:
 - The lists of subjects associated with a particular teacher
 - Ability to manage all grades, eg. create/delete grade, add/remove students, add/remove subjects
 - The journal to manage students scores.
+- **See the photo [assets](assets/MEDIA.md)**
 
 ## Stack used
 - **Qt Framework 6.9.3** with no modifications as a linked git module under the **GPL-3.0-only**
+- **MariaDB** is now the database for the project
 
 ## License
 The **SchooliesCave** is released under the **GNU General Public License, version 3 only**. (GPL-3.0-only)  
@@ -31,6 +33,12 @@ The **SchooliesCave** is released under the **GNU General Public License, versio
 > and creates the main projects's configuration
 > then you still need to build the main project and rebuild it when-ever you need
 
+## Depoyment notice
+
+1. Install MariaDB as you wish, [MariaDB Docs](https://mariadb.com/docs/server)
+2. Edit in **SchoolApi_v2.0.0/create_school_database.sql** the `use SchooliesCave;` to the name of the db you created
+3. Run the content of the script in the admin panel to create the database
+
 ## Platform support
 
 **The goal is Unix and Windows**
@@ -38,12 +46,7 @@ The **SchooliesCave** is released under the **GNU General Public License, versio
 - Windows 10, 11 (should build, the new **Init.cmake** approach is not tested)
 - Linux (should build, **tested**)
 
-#### Sql server issues
-- The project now is within a process of sql's server changing
-- The main candidates now are MySQL, MariaDB or PostgreSql
-
-> If you like to discover sql connection, you should check out dbapi::Connection in the Api's files  
-> And possibly change the QSql's driver plugin.
+> **The project was dialed for MariaDB**
 
 ## Contribute rules
 - Any big or unfinished changes should go through  `dev`  branch

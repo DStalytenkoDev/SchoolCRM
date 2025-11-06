@@ -22,11 +22,13 @@ cmake_path(SET qt6_dir "${proj_dir}/qt6")
 cmake_path(SET qt6_install_dir "${proj_dir}/build/qt6")
 cmake_path(SET qt6_prefix_path "${qt6_install_dir}/lib/cmake")
 cmake_path(SET proj_cmake_dir "${proj_dir}/build/MainCmakeConf")
+cmake_path(SET build_dir "${proj_dir}/build")
 
 cmake_path(SET QT6_INIT_REPO "${qt6_dir}/init-repository")
 cmake_path(SET QT6_CONF "${qt6_dir}/configure")
 
 # create dir for qt6 installation and for main cmake configuration
+file(MAKE_DIRECTORY ${build_dir})
 file(MAKE_DIRECTORY ${qt6_install_dir})
 file(MAKE_DIRECTORY ${proj_cmake_dir})
 

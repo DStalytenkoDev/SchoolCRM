@@ -29,62 +29,69 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets StateMachine)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets StateMachine)
 
-add_subdirectory(./SchoolApi_v2.0.0)
+add_subdirectory(./src/SchoolApi_v2.0.0)
 
 set(PROJECT_SOURCES
-        main.cpp
-        MainWindow.cpp
-        MainWindow.h
-        MainWindow.ui
+        src/main.cpp
+        src/MainWindow.cpp
+        src/MainWindow.h
+        src/MainWindow.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(SchooliesCave
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        Journal/MarkTypeSelector.h
-        Journal/MarkTypeSelector.cpp
+        src/Journal/MarkTypeSelector.h
+        src/Journal/MarkTypeSelector.cpp
 
-        ComboBoxFinderView.h
-        ComboBoxFinderView.cpp
+        src/ComboBoxFinderView.h
+        src/ComboBoxFinderView.cpp
 
 
 
-        Persons/PersonsModule.h Persons/PersonsModule.cpp Persons/PersonsModule.ui
-        Persons/PersonWidget.h Persons/PersonWidget.cpp Persons/PersonWidget.ui
-        Persons/PersonCreationDialog.h Persons/PersonCreationDialog.cpp
-        Persons/PersonsModel.h Persons/PersonsModel.cpp
-        Persons/PersonEdtitionWidget.h Persons/PersonEdtitionWidget.cpp
+        src/Persons/PersonsModule.h src/Persons/PersonsModule.cpp src/Persons/PersonsModule.ui
+        src/Persons/PersonWidget.h src/Persons/PersonWidget.cpp src/Persons/PersonWidget.ui
+        src/Persons/PersonCreationDialog.h src/Persons/PersonCreationDialog.cpp
+        src/Persons/PersonsModel.h src/Persons/PersonsModel.cpp
+        src/Persons/PersonEdtitionWidget.h src/Persons/PersonEdtitionWidget.cpp
 
-        Roles/RolesModel.h Roles/RolesModel.cpp
-        Roles/RolesModule.h Roles/RolesModule.cpp Roles/RolesModule.ui
-        Roles/RoleCreationDialog.h Roles/RoleCreationDialog.cpp Roles/RoleCreationDialog.ui
+        src/Roles/RolesModel.h src/Roles/RolesModel.cpp
+        src/Roles/RolesModule.h src/Roles/RolesModule.cpp src/Roles/RolesModule.ui
+        src/Roles/RoleCreationDialog.h src/Roles/RoleCreationDialog.cpp src/Roles/RoleCreationDialog.ui
 
-        Subjects/SubjectsModel.h Subjects/SubjectsModel.cpp
-        Subjects/SubjectsModule.h Subjects/SubjectsModule.cpp Subjects/SubjectsModule.ui
-        Subjects/CreateSubjectDialog.h Subjects/CreateSubjectDialog.cpp Subjects/CreateSubjectDialog.ui
+        src/Subjects/SubjectsModel.h src/Subjects/SubjectsModel.cpp
+        src/Subjects/SubjectsModule.h src/Subjects/SubjectsModule.cpp src/Subjects/SubjectsModule.ui
+        src/Subjects/CreateSubjectDialog.h src/Subjects/CreateSubjectDialog.cpp src/Subjects/CreateSubjectDialog.ui
 
-        SubjectsOfTeacher/SubjectsOfTeacherModule.h SubjectsOfTeacher/SubjectsOfTeacherModule.cpp SubjectsOfTeacher/SubjectsOfTeacherModule.ui
-        SubjectsOfTeacher/SubjectsOfTeacherModel.h SubjectsOfTeacher/SubjectsOfTeacherModel.cpp
+        src/SubjectsOfTeacher/SubjectsOfTeacherModule.h src/SubjectsOfTeacher/SubjectsOfTeacherModule.cpp src/SubjectsOfTeacher/SubjectsOfTeacherModule.ui
+        src/SubjectsOfTeacher/SubjectsOfTeacherModel.h src/SubjectsOfTeacher/SubjectsOfTeacherModel.cpp
 
-        Classes/ClassSubjectsModel.h Classes/ClassSubjectsModel.cpp
-        Classes/ClassStudentsModel.h Classes/ClassStudentsModel.cpp
-        Classes/ClassesModel.h Classes/ClassesModel.cpp
-        Classes/ClassesModule.h Classes/ClassesModule.cpp Classes/ClassesModule.ui
-        Classes/ClassCreationDialog.h Classes/ClassCreationDialog.cpp Classes/ClassCreationDialog.ui
+        src/Classes/ClassSubjectsModel.h src/Classes/ClassSubjectsModel.cpp
+        src/Classes/ClassStudentsModel.h src/Classes/ClassStudentsModel.cpp
+        src/Classes/ClassesModel.h src/Classes/ClassesModel.cpp
+        src/Classes/ClassesModule.h src/Classes/ClassesModule.cpp src/Classes/ClassesModule.ui
+        src/Classes/ClassCreationDialog.h src/Classes/ClassCreationDialog.cpp src/Classes/ClassCreationDialog.ui
 
-        Journal/JournalModel.h Journal/JournalModel.cpp
-        Journal/JournalModule.h Journal/JournalModule.cpp Journal/JournalModule.ui
-        Journal/MarkCreatingDialog.h Journal/MarkCreatingDialog.cpp Journal/MarkCreatingDialog.ui
-        Journal/FakePersonsModel.h Journal/FakePersonsModel.cpp
+        src/Journal/JournalModel.h src/Journal/JournalModel.cpp
+        src/Journal/JournalModule.h src/Journal/JournalModule.cpp src/Journal/JournalModule.ui
+        src/Journal/MarkCreatingDialog.h src/Journal/MarkCreatingDialog.cpp src/Journal/MarkCreatingDialog.ui
+        src/Journal/FakePersonsModel.h src/Journal/FakePersonsModel.cpp
 
-        TransitionFactrory.h
+        src/TransitionFactrory.h
+
         readme.md
 
-        UserError.h
-        UserError.cpp
-        AuthorizationWindow.h AuthorizationWindow.cpp AuthorizationWindow.ui
-        Menu/AboutDialog.h Menu/AboutDialog.cpp Menu/AboutDialog.ui
+        src/UserError.h
+        src/UserError.cpp
+        src/AuthorizationWindow.h
+	src/AuthorizationWindow.cpp
+	src/AuthorizationWindow.ui
+        src/Menu/AboutDialog.h
+	src/Menu/AboutDialog.cpp
+	src/Menu/AboutDialog.ui
+
+        assets/MEDIA.md
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET SchooliesCave APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
