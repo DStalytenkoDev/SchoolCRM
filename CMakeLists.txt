@@ -26,6 +26,9 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(cmake/InitQt6.cmake)
+include(cmake/InitLibreSSL.cmake)
+
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets StateMachine)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets StateMachine)
 

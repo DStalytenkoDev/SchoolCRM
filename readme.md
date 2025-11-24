@@ -19,19 +19,15 @@ You can connect the app to an sql server. And **manage these kinds of data**:
 ## Stack used
 - **Qt Framework 6.9.3** with no modifications as a linked git module under the **GPL-3.0-only**
 - **MariaDB** is now the database for the project
+- LibreSSL (in dev)
 
 ## License
 The **SchooliesCave** is released under the **GNU General Public License, version 3 only**. (GPL-3.0-only)  
 **Please see the LICENSE and pay attention to copyright and license notices in all project's files**
 
 ## Build guide
-1. Clone repo
-2. Run `cmake -DBUILDTYPE=debug -P Init.cmake`, you can change `debug` to `release`
-3. Run `cmake --build proj/build/MainCmakeConf`
-
-> the **Init.cmake** initiates **Qt6** and builds it
-> and creates the main projects's configuration
-> then you still need to build the main project and rebuild it when-ever you need
+1. Clone repo  
+... DEV ...
 
 ## Depoyment notice
 
