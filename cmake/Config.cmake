@@ -29,9 +29,3 @@ endif()
 
 cmake_path(SET PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 cmake_path(SET PROJECT_BUILD_DIR "${PROJECT_DIR}/build")
-
-cmake_path(SET MAIN_CMAKE_CONF_DrR "${PROJECT_BUILD_DIR}/${MAIN_BUILD_NAME}")
-
-# sets the Qt version
-set(QT_VERSION 6.9.3)
-

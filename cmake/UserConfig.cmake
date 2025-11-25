@@ -20,10 +20,7 @@ cmake_minimum_required(VERSION 3.16)
 
 # sets the type of build, expected values: release | debug
 # however it affects only dependencies
-set(USER_BUILD_TYPE debug)
-
-# sets the name of build (cmake configuration) that'll lay in the build/ directory
-set(MAIN_BUILD_NAME "Desktop-${USER_BUILD_TYPE}-SchooliesCave")
+set(USER_BUILD_TYPE release)
 
 # force system qt6
 set(QT6_FORCE_SYSTEM OFF)

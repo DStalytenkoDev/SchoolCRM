@@ -24,17 +24,17 @@ cmake_path(SET QT6_DIR "${PROJECT_DIR}/qt6")
 cmake_path(SET QT6_INSTALL_DIR "${PROJECT_BUILD_DIR}/qt6")
 cmake_path(SET QT6_PREFIX_PATH "${QT6_INSTALL_DIR}/lib/cmake")
 
-find_path(QT6_INSTALL_DIR_FOUND PATHS ${QT6_INSTALL_DIR})
-find_path(QT6_PREFIX_PATH_FOUND PATHS ${QT6_PREFIX_PATH})
+# find Qt6
+set(QT6_INSTALL_DIR_FOUND FALSE)
 
-# make it easier to check weather it was found
-if(${QT6_INSTALL_DIR_FOUND} STREQUAL "QT6_INSTALL_DIR_FOUND-NOTFOUND")
-	set(QT6_INSTALL_DIR_FOUND FALSE)
+if(EXISTS ${QT6_INSTALL_DIR})
+	set(QT6_INSTALL_DIR_FOUND TRUE)
 endif()
 
-# make it easier to check weather it was found
-if(${QT6_PREFIX_PATH_FOUND} STREQUAL "QT6_PREFIX_PATH_FOUND-NOTFOUND")
-	set(QT6_PREFIX_PATH_FOUND FALSE)
+set(QT6_PREFIX_PATH_FOUND FALSE)
+
+if(EXISTS ${QT6_PREFIX_PATH})
+	set(QT6_PREFIX_PATH_FOUND TRUE)
 endif()
 
 # nothing to do if user forces the use of system qt6

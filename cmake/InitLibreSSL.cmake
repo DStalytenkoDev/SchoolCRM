@@ -22,11 +22,13 @@ include(cmake/Config.cmake)
 
 cmake_path(SET SSL_DIR "${PROJECT_DIR}/libressl")
 cmake_path(SET SSL_INSTALL_DIR "${PROJECT_BUILD_DIR}/libressl")
+cmake_path(SET SSL_CMAKE_DIR "${SSL_INSTALL_DIR}/lib/cmake")
 
-find_path(SSL_INSTALL_DIR_FOUND PATHS ${SSL_INSTALL_DIR})
+# check if LibreSSL was already built by project
+set(SSL_INSTALL_DIR_FOUND FALSE)
 
-if(${SSL_INSTALL_DIR_FOUND} STREQUAL SSL_INSTALL_DIR_FOUND-NOTFOUND)
-	set(SSL_INSTALL_DIR_FOUND FALSE)
+if(EXISTS ${SSL_INSTALL_DIR})
+	set(SSL_INSTALL_DIR_FOUND TRUE)
 endif()
 
 # nothing to do if user forces the use of system libressl
@@ -36,7 +38,7 @@ endif()
 
 # sets libressl built by project
 if(${SSL_INSTALL_DIR_FOUND})
-	set(CMAKE_MODULE_PATH "${SSL_INSTALL_DIR};${CMAKE_MODULE_PATH}")
+	set(CMAKE_PREFIX_PATH "${SSL_CMAKE_DIR};${CMAKE_PREFIX_PATH}")
 endif()
 
 # if the build is not required, then the one built is used
@@ -75,8 +77,7 @@ execute_process(COMMAND ${SSL_CONF} WORKING_DIRECTORY ${SSL_DIR})
 execute_process(COMMAND cmake -G Ninja
 	-DCMAKE_INSTALL_PREFIX=${SSL_INSTALL_DIR}
 	-DCMAKE_BUILD_TYPE=${INNER_BUILD_TYPE_CAPITAL}
-	${SSL_DIR}
-	--parallel WORKING_DIRECTORY ${SSL_DIR})
+	${SSL_DIR} WORKING_DIRECTORY ${SSL_DIR})
 
 execute_process(COMMAND cmake --build ${SSL_DIR} --parallel WORKING_DIRECTORY ${SSL_DIR})
 execute_process(COMMAND cmake --install ${SSL_DIR} WORKING_DIRECTORY ${SSL_DIR})

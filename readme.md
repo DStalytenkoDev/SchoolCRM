@@ -19,15 +19,48 @@ You can connect the app to an sql server. And **manage these kinds of data**:
 ## Stack used
 - **Qt Framework 6.9.3** with no modifications as a linked git module under the **GPL-3.0-only**
 - **MariaDB** is now the database for the project
-- LibreSSL (in dev)
+- **LibreSSL 4.2.1** under the licenses that are OpenSSL License, Original SSLeay Licence and ICS License
 
 ## License
-The **SchooliesCave** is released under the **GNU General Public License, version 3 only**. (GPL-3.0-only)  
-**Please see the LICENSE and pay attention to copyright and license notices in all project's files**
+
+> The **SchooliesCave** is released under the **GNU General Public License, version 3 only**. (GPL-3.0-only)
+> **Please see the LICENSE and pay attention to copyright and license notices in all project's files**
+  
+> Qt Framework 6.9.3 under the GNU General Public License, version 3 only (GPL-3.0-only)
+> All licenses of Qt can be found in it's linked module
+  
+> LibreSSL under the licenses that are OpenSSL License, Original SSLeay Licence and ICS License
+> All licenses of Qt can be found in it's linked module
+>   
+> This product includes software developed by the OpenSSL Project for  
+> use in the OpenSSL Toolkit (http://www.openssl.org/)
+>   
+> This product includes cryptographic software written by Eric Young
+> (eay@cryptsoft.com). This product includes software written by Tim
+> Hudson (tjh@cryptsoft.com)
 
 ## Build guide
-1. Clone repo  
-... DEV ...
+
+---
+
+    git clone https://github.com/DStalytenkoDev/SchooliesCave.git
+    
+    mkdir SchooliesCave/build
+    mkdir SchooliesCave/build/YourNameCmakeConfiguration
+    cd SchooliesCave/build/YourNameCmakeConfiguration
+
+    cmake ../../
+    cmake --build .
+
+> please aknowledge the `proj/cmake/UserConfig.cmake`
+> There are some properties you can edit like:
+>   
+> - `USER_BUILD_TYPE` should be {release | debug}, it affects only dependencies built by the project
+> - `QT6_FORCE_SYSTEM` should be {ON | OFF}, it forces the use of system installed Qt6
+> - `QT6_FORCE_BUILD` should be {ON | OFF}, it forces the Qt6 to be build despite the one was built before
+> - `SSL_FORCE_SYSTEM` should be {ON | OFF}, it forces the use of system installed LibreSSL 
+> - `SSL_FORCE_BUILD` should be {ON | OFF}, it forces the LibreSSL to be build despite the one was built before
+
 
 ## Depoyment notice
 
