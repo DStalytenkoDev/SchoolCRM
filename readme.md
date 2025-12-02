@@ -26,11 +26,11 @@ You can connect the app to an sql server. And **manage these kinds of data**:
 > The **SchooliesCave** is released under the **GNU General Public License, version 3 only**. (GPL-3.0-only)
 > **Please see the LICENSE and pay attention to copyright and license notices in all project's files**
   
-> Qt Framework 6.9.3 under the GNU General Public License, version 3 only (GPL-3.0-only)
-> All licenses of Qt can be found in it's linked module
+> **Qt Framework 6.9.3** under the GNU General Public License, version 3 only (GPL-3.0-only)
+> All licenses of **Qt** can be found in it's linked module
   
-> LibreSSL under the licenses that are OpenSSL License, Original SSLeay Licence and ICS License
-> All licenses of Qt can be found in it's linked module
+> **LibreSSL** under the licenses that are OpenSSL License, Original SSLeay Licence and ICS License
+> All licenses of **LibreSSL** can be found in it's linked module
 >   
 > This product includes software developed by the OpenSSL Project for  
 > use in the OpenSSL Toolkit (http://www.openssl.org/)
@@ -60,6 +60,15 @@ You can connect the app to an sql server. And **manage these kinds of data**:
 > - `QT6_FORCE_BUILD` should be {ON | OFF}, it forces the Qt6 to be build despite the one was built before
 > - `SSL_FORCE_SYSTEM` should be {ON | OFF}, it forces the use of system installed LibreSSL 
 > - `SSL_FORCE_BUILD` should be {ON | OFF}, it forces the LibreSSL to be build despite the one was built before
+
+### The project should be **Qt Creator** compatible
+
+However you might need to manage `*_FORCE_SYSTEM` or `*_FORCE_BUILD` properties.
+
+You definitely need to set the `QT6_FORCE_SYSTEM` to `ON`
+
+You might need to do one normal plain cmake configuration to let all dependecies to be build and installed  
+in case your system does not have them installed.
 
 
 ## Depoyment notice

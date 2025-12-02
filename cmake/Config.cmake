@@ -1,4 +1,4 @@
-# Copyright (C) 2025 AUTHORS of SchooliesCave
+# Copyright (C) 2025 Davyd Stalytenko
 # SPDX-License-Identifier: GPL-3.0-only
 #
 # This file is part of SchooliesCave.
