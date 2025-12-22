@@ -28,6 +28,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(cmake/InitQt6.cmake)
 include(cmake/InitLibreSSL.cmake)
+include(cmake/Libb64.cmake)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets StateMachine)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets StateMachine)
